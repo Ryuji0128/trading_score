@@ -1,87 +1,190 @@
 "use client";
 
-import { Box, Container, Typography, Chip, Paper, Grid } from "@mui/material";
+import { useState, useEffect, useMemo } from "react";
+import { Box, Container, Typography, Chip, Paper, CircularProgress } from "@mui/material";
+import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import MLBLayout from "@/components/MLBLayout";
 import StyleIcon from "@mui/icons-material/Style";
-import SportsBaseballIcon from "@mui/icons-material/SportsBaseball";
-import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
-import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
-import StarIcon from "@mui/icons-material/Star";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
-const toppsCards = [
-  {
-    title: "大谷翔平 完全試合級の投球",
-    date: "2024年1月20日",
-    description: "9イニング13奪三振の圧巻のピッチング。相手打線を完全に封じ込めた歴史的パフォーマンス。",
-    cardNumber: "#TN-123",
-    gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-    icon: <LocalFireDepartmentIcon />,
-  },
-  {
-    title: "アーロン・ジャッジ サヨナラ満塁弾",
-    date: "2024年1月19日",
-    description: "9回裏、劇的なサヨナラ満塁ホームラン。チームを勝利に導いた歴史的な一打。",
-    cardNumber: "#TN-122",
-    gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-    icon: <EmojiEventsIcon />,
-  },
-  {
-    title: "マイク・トラウト 3本塁打",
-    date: "2024年1月18日",
-    description: "1試合3本塁打の快挙達成。シーズン序盤から圧倒的な長打力を見せつける。",
-    cardNumber: "#TN-121",
-    gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-    icon: <StarIcon />,
-  },
-  {
-    title: "フアン・ソト 連続四球記録",
-    date: "2024年1月17日",
-    description: "5試合連続四球の新記録達成。選球眼の良さが際立つパフォーマンス。",
-    cardNumber: "#TN-120",
-    gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
-    icon: <TrendingUpIcon />,
-  },
-  {
-    title: "ロナルド・アクーニャJr. 盗塁王",
-    date: "2024年1月16日",
-    description: "今季30盗塁目を記録。圧倒的なスピードでベースを駆け抜ける。",
-    cardNumber: "#TN-119",
-    gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
-    icon: <SportsBaseballIcon />,
-  },
-  {
-    title: "ムーキー・ベッツ サイクル安打",
-    date: "2024年1月15日",
-    description: "サイクル安打達成。単打、二塁打、三塁打、本塁打を全て記録した完璧な試合。",
-    cardNumber: "#TN-118",
-    gradient: "linear-gradient(135deg, #30cfd0 0%, #330867 100%)",
-    icon: <StarIcon />,
-  },
-];
-
-const cardFeatures = [
-  {
-    title: "限定カード",
-    description: "24時間限定で販売される特別なカード",
-    icon: <StyleIcon />,
-    color: "#2e7d32",
-  },
-  {
-    title: "リアルタイム",
-    description: "試合直後に発行される即時性",
-    icon: <LocalFireDepartmentIcon />,
-    color: "#d32f2f",
-  },
-  {
-    title: "コレクション",
-    description: "歴史的瞬間を記録する価値",
-    icon: <EmojiEventsIcon />,
-    color: "#ed6c02",
-  },
-];
+interface ToppsCard {
+  id: number;
+  card_number: string;
+  player: {
+    full_name: string;
+    team: {
+      full_name: string;
+      abbreviation: string;
+      primary_color: string;
+    } | null;
+  } | null;
+  title: string;
+  total_print: number | null;
+  image_url: string;
+  created_at: string;
+  topps_set: {
+    year: number;
+    name: string;
+  };
+}
 
 export default function ToppsNowPage() {
+  const [toppsCards, setToppsCards] = useState<ToppsCard[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchToppsCards = async () => {
+      try {
+        // nginxプロキシ経由でAPIにアクセス
+        const response = await fetch('/api/topps-cards/');
+        if (response.ok) {
+          const data = await response.json();
+          setToppsCards(data.results || data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch Topps cards:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchToppsCards();
+  }, []);
+
+  // カード番号のソート関数
+  const sortCardNumber = (a: string, b: string) => {
+    // 特殊カード（TS-, SP-）とそうでないものを区別
+    const isSpecialA = a.startsWith('TS-') || a.startsWith('SP-');
+    const isSpecialB = b.startsWith('TS-') || b.startsWith('SP-');
+
+    // 特殊カードは後ろにソート
+    if (isSpecialA && !isSpecialB) return 1;
+    if (!isSpecialA && isSpecialB) return -1;
+
+    // 両方特殊カードの場合は文字列比較
+    if (isSpecialA && isSpecialB) {
+      return a.localeCompare(b);
+    }
+
+    // 通常カードの場合: 数値部分を抽出して比較
+    // "OS-14" -> prefix: "OS", num: 14
+    // "MLBJP" -> prefix: "MLBJP", num: undefined
+    // "100" -> prefix: "", num: 100
+    const parseCardNumber = (str: string) => {
+      // 数値のみの場合
+      const numOnly = str.match(/^(\d+)$/);
+      if (numOnly) {
+        return { prefix: '', num: parseInt(numOnly[1]) };
+      }
+
+      // プレフィックス-数値の形式
+      const withDash = str.match(/^([A-Z]+)-(\d+)$/);
+      if (withDash) {
+        return { prefix: withDash[1], num: parseInt(withDash[2]) };
+      }
+
+      // 文字列のみの場合
+      const alphaOnly = str.match(/^([A-Z]+)$/);
+      if (alphaOnly) {
+        return { prefix: alphaOnly[1], num: undefined };
+      }
+
+      // その他の場合は文字列全体をprefixとする
+      return { prefix: str, num: undefined };
+    };
+
+    const parsedA = parseCardNumber(a);
+    const parsedB = parseCardNumber(b);
+
+    // プレフィックスが異なる場合は文字列比較
+    if (parsedA.prefix !== parsedB.prefix) {
+      return parsedA.prefix.localeCompare(parsedB.prefix);
+    }
+
+    // プレフィックスが同じ場合
+    // 両方数値がある場合は数値比較
+    if (parsedA.num !== undefined && parsedB.num !== undefined) {
+      return parsedA.num - parsedB.num;
+    }
+
+    // 片方だけ数値がある場合は数値ありを後ろに
+    if (parsedA.num !== undefined) return 1;
+    if (parsedB.num !== undefined) return -1;
+
+    // デフォルトは文字列比較
+    return a.localeCompare(b);
+  };
+
+  // DataGridのカラム定義
+  const columns: GridColDef[] = useMemo(() => [
+    {
+      field: 'card_number',
+      headerName: 'カード番号',
+      width: 130,
+      headerClassName: 'data-grid-header',
+      sortComparator: sortCardNumber,
+      filterable: true,
+    },
+    {
+      field: 'player',
+      headerName: '選手名',
+      width: 200,
+      headerClassName: 'data-grid-header',
+      valueGetter: (value, row) => row.player?.full_name || 'Team Set',
+      filterable: true,
+    },
+    {
+      field: 'team',
+      headerName: 'チーム',
+      width: 180,
+      headerClassName: 'data-grid-header',
+      valueGetter: (value, row) => row.player?.team?.full_name || '-',
+      filterable: true,
+    },
+    {
+      field: 'title',
+      headerName: 'タイトル',
+      flex: 1,
+      minWidth: 300,
+      headerClassName: 'data-grid-header',
+      filterable: true,
+    },
+    {
+      field: 'total_print',
+      headerName: '発行枚数',
+      width: 130,
+      type: 'number',
+      headerClassName: 'data-grid-header',
+      valueFormatter: (value) => value ? value.toLocaleString() : '-',
+      filterable: true,
+    },
+  ], []);
+
+  // 統計情報を計算
+  const stats = useMemo(() => {
+    if (toppsCards.length === 0) return null;
+
+    const totalCards = toppsCards.length;
+    const cardsWithPrint = toppsCards.filter(card => card.total_print !== null);
+    const avgPrint = cardsWithPrint.length > 0
+      ? Math.round(cardsWithPrint.reduce((sum, card) => sum + (card.total_print || 0), 0) / cardsWithPrint.length)
+      : 0;
+
+    const maxPrintCard = cardsWithPrint.reduce((max, card) =>
+      (card.total_print || 0) > (max.total_print || 0) ? card : max
+    , cardsWithPrint[0]);
+
+    const minPrintCard = cardsWithPrint.reduce((min, card) =>
+      (card.total_print || 0) < (min.total_print || 0) ? card : min
+    , cardsWithPrint[0]);
+
+    return {
+      totalCards,
+      avgPrint,
+      maxPrintCard,
+      minPrintCard,
+    };
+  }, [toppsCards]);
+
   return (
     <MLBLayout activePath="/topps-now">
       {/* ヒーローセクション */}
@@ -119,83 +222,125 @@ export default function ToppsNowPage() {
             }}
           />
           <Typography variant="h2" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: "2rem", md: "3.5rem" } }}>
-            Topps Now
+            Topps Now データベース
           </Typography>
           <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: 600, lineHeight: 1.8 }}>
-            歴史的瞬間を記録する限定トレーディングカード。試合直後に発行される特別なカードコレクション。
+            歴史的瞬間を記録する限定トレーディングカードのデータ分析
           </Typography>
         </Container>
       </Box>
 
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        {/* Topps Nowの特徴 */}
-        <Box sx={{ mb: 10 }}>
-          <Box sx={{ mb: 4 }}>
+        {/* 統計情報カード */}
+        {stats && (
+          <Box sx={{ mb: 6 }}>
             <Typography
               variant="h4"
               sx={{
                 fontWeight: 800,
-                mb: 1,
+                mb: 3,
                 background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Topps Nowとは
+              統計情報
             </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              What is Topps Now
-            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "1fr 1fr 1fr 1fr" },
+                gap: 3,
+              }}
+            >
+              {/* 総カード数 */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: "1px solid #e8f5e9",
+                  background: "linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%)",
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#1a472a", fontWeight: 600, mb: 1 }}>
+                  総カード数
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: "#2e7d32" }}>
+                  {stats.totalCards.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  枚
+                </Typography>
+              </Paper>
+
+              {/* 平均発行枚数 */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: "1px solid #e8f5e9",
+                  background: "linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%)",
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#1a472a", fontWeight: 600, mb: 1 }}>
+                  平均発行枚数
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: "#2e7d32" }}>
+                  {stats.avgPrint.toLocaleString()}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  枚
+                </Typography>
+              </Paper>
+
+              {/* 最多発行枚数 */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: "1px solid #e8f5e9",
+                  background: "linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%)",
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#1a472a", fontWeight: 600, mb: 1 }}>
+                  最多発行枚数
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: "#2e7d32" }}>
+                  {stats.maxPrintCard?.total_print?.toLocaleString() || '-'}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {stats.maxPrintCard?.player?.full_name || stats.maxPrintCard?.title || '-'}
+                </Typography>
+              </Paper>
+
+              {/* 最少発行枚数 */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: "1px solid #e8f5e9",
+                  background: "linear-gradient(135deg, #f1f8f4 0%, #ffffff 100%)",
+                }}
+              >
+                <Typography variant="body2" sx={{ color: "#1a472a", fontWeight: 600, mb: 1 }}>
+                  最少発行枚数
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: "#2e7d32" }}>
+                  {stats.minPrintCard?.total_print?.toLocaleString() || '-'}
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  {stats.minPrintCard?.player?.full_name || stats.minPrintCard?.title || '-'}
+                </Typography>
+              </Paper>
+            </Box>
           </Box>
+        )}
 
-          <Grid container spacing={3}>
-            {cardFeatures.map((feature, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 4,
-                    textAlign: "center",
-                    borderRadius: 3,
-                    border: "1px solid #e8f5e9",
-                    height: "100%",
-                    transition: "all 0.3s",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 8px 24px rgba(46, 125, 50, 0.15)",
-                    },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 64,
-                      height: 64,
-                      borderRadius: 2,
-                      bgcolor: `${feature.color}15`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      mx: "auto",
-                      mb: 3,
-                      color: feature.color,
-                      "& svg": { fontSize: 32 },
-                    }}
-                  >
-                    {feature.icon}
-                  </Box>
-                  <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: "#1a472a" }}>
-                    {feature.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "text.secondary", lineHeight: 1.8 }}>
-                    {feature.description}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
-
-        {/* 最新カード */}
+        {/* データテーブル */}
         <Box>
           <Box sx={{ mb: 4 }}>
             <Typography
@@ -208,83 +353,81 @@ export default function ToppsNowPage() {
                 WebkitTextFillColor: "transparent",
               }}
             >
-              最新カード
+              カード一覧
             </Typography>
             <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Latest Cards
+              全{toppsCards.length}件のカードデータ
             </Typography>
           </Box>
 
-          <Grid container spacing={3}>
-            {toppsCards.map((card, index) => (
-              <Grid item xs={12} md={6} lg={4} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    borderRadius: 3,
-                    overflow: "hidden",
-                    border: "1px solid #e8f5e9",
-                    transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                    cursor: "pointer",
-                    height: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    "&:hover": {
-                      transform: "translateY(-8px)",
-                      boxShadow: "0 12px 40px rgba(46, 125, 50, 0.15)",
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+              <CircularProgress sx={{ color: '#2e7d32' }} />
+            </Box>
+          ) : toppsCards.length > 0 ? (
+            <Paper
+              elevation={0}
+              sx={{
+                height: 700,
+                width: '100%',
+                borderRadius: 3,
+                border: '1px solid #e8f5e9',
+                '& .data-grid-header': {
+                  backgroundColor: '#f1f8f4',
+                  color: '#1a472a',
+                  fontWeight: 700,
+                },
+                '& .MuiDataGrid-root': {
+                  border: 'none',
+                },
+              }}
+            >
+              <DataGrid
+                rows={toppsCards}
+                columns={columns}
+                initialState={{
+                  pagination: {
+                    paginationModel: { page: 0, pageSize: 25 },
+                  },
+                  sorting: {
+                    sortModel: [{ field: 'created_at', sort: 'desc' }],
+                  },
+                }}
+                pageSizeOptions={[10, 25, 50, 100]}
+                slots={{ toolbar: GridToolbar }}
+                slotProps={{
+                  toolbar: {
+                    showQuickFilter: true,
+                    quickFilterProps: {
+                      debounceMs: 500,
+                      placeholder: 'カード番号、選手名、チーム、タイトルで検索...',
                     },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      height: 180,
-                      background: card.gradient,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      position: "relative",
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        color: "white",
-                        "& svg": { fontSize: 80, opacity: 0.3 },
-                      }}
-                    >
-                      {card.icon}
-                    </Box>
-                    <Chip
-                      label={card.cardNumber}
-                      size="small"
-                      sx={{
-                        position: "absolute",
-                        top: 16,
-                        right: 16,
-                        bgcolor: "rgba(255,255,255,0.9)",
-                        color: "#1a472a",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      }}
-                    />
-                  </Box>
-                  <Box sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: "#1a472a", lineHeight: 1.4 }}>
-                      {card.title}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "text.secondary", mb: 2, lineHeight: 1.7, flexGrow: 1 }}>
-                      {card.description}
-                    </Typography>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, pt: 2, borderTop: "1px solid #f0f0f0" }}>
-                      <SportsBaseballIcon sx={{ fontSize: 16, color: "#2e7d32" }} />
-                      <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
-                        {card.date}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
+                  },
+                }}
+                disableRowSelectionOnClick
+                disableColumnFilter={false}
+                disableColumnSelector={false}
+                disableDensitySelector={false}
+                sx={{
+                  '& .MuiDataGrid-cell:focus': {
+                    outline: 'none',
+                  },
+                  '& .MuiDataGrid-row:hover': {
+                    backgroundColor: '#f8fdf9',
+                  },
+                }}
+              />
+            </Paper>
+          ) : (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <Typography variant="h6" sx={{ color: 'text.secondary' }}>
+                カードデータがありません
+              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                スクレイピングコマンドを実行してカードデータを取得してください
+              </Typography>
+            </Box>
+          )}
         </Box>
       </Container>
     </MLBLayout>

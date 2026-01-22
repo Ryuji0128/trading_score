@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Account, Session, VerificationToken, News, Inquiry, Blog
+from .models import (
+    Account, Session, VerificationToken, News, Inquiry, Blog,
+    Team, Player, ToppsSet, ToppsCard, ToppsCardVariant
+)
 
 User = get_user_model()
 
@@ -108,3 +111,39 @@ class LoginSerializer(serializers.Serializer):
 class TokenSerializer(serializers.Serializer):
     access = serializers.CharField()
     refresh = serializers.CharField()
+
+
+# Topps NOW Serializers
+class TeamSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Team
+        fields = ['id', 'city', 'nickname', 'full_name', 'abbreviation', 'league', 'division', 'primary_color']
+
+
+class PlayerSerializer(serializers.ModelSerializer):
+    team = TeamSerializer(read_only=True)
+
+    class Meta:
+        model = Player
+        fields = ['id', 'full_name', 'first_name', 'last_name', 'team', 'jersey_number', 'position']
+
+
+class ToppsSetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ToppsSet
+        fields = ['id', 'year', 'brand', 'name', 'slug']
+
+
+class ToppsCardSerializer(serializers.ModelSerializer):
+    player = PlayerSerializer(read_only=True)
+    team = TeamSerializer(read_only=True)
+    topps_set = ToppsSetSerializer(read_only=True)
+
+    class Meta:
+        model = ToppsCard
+        fields = [
+            'id', 'topps_set', 'card_number', 'player', 'team',
+            'title', 'total_print', 'image_url', 'is_rookie',
+            'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']

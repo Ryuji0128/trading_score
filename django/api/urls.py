@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     UserViewSet, AccountViewSet, SessionViewSet, VerificationTokenViewSet,
-    NewsViewSet, InquiryViewSet, BlogViewSet,
+    NewsViewSet, InquiryViewSet, BlogViewSet, ToppsCardViewSet,
     login_view, register_view, current_user_view
 )
 
@@ -15,6 +15,7 @@ router.register(r'verification-tokens', VerificationTokenViewSet, basename='veri
 router.register(r'news', NewsViewSet, basename='news')
 router.register(r'inquiries', InquiryViewSet, basename='inquiry')
 router.register(r'blogs', BlogViewSet, basename='blog')
+router.register(r'topps-cards', ToppsCardViewSet, basename='topps-card')
 
 urlpatterns = [
     # Authentication endpoints

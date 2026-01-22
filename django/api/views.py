@@ -4,12 +4,15 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
-from .models import Account, Session, VerificationToken, News, Inquiry, Blog
+from .models import (
+    Account, Session, VerificationToken, News, Inquiry, Blog,
+    Team, Player, ToppsSet, ToppsCard, ToppsCardVariant
+)
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     AccountSerializer, SessionSerializer, VerificationTokenSerializer,
     NewsSerializer, InquirySerializer, BlogSerializer,
-    LoginSerializer
+    LoginSerializer, ToppsCardSerializer
 )
 
 User = get_user_model()
@@ -161,3 +164,38 @@ def current_user_view(request):
     """
     serializer = UserSerializer(request.user)
     return Response(serializer.data)
+
+
+class ToppsCardViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Topps NOW card read-only operations
+    """
+    queryset = ToppsCard.objects.all().select_related(
+        'player', 'team', 'topps_set'
+    ).order_by('-created_at')
+    serializer_class = ToppsCardSerializer
+    permission_classes = [AllowAny]
+    pagination_class = None  # ページネーションを無効化
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # フィルタリングオプション
+        card_number = self.request.query_params.get('card_number', None)
+        player_name = self.request.query_params.get('player', None)
+        year = self.request.query_params.get('year', None)
+        limit = self.request.query_params.get('limit', None)
+
+        if card_number:
+            queryset = queryset.filter(card_number=card_number)
+        if player_name:
+            queryset = queryset.filter(player__full_name__icontains=player_name)
+        if year:
+            queryset = queryset.filter(topps_set__year=year)
+        if limit:
+            try:
+                queryset = queryset[:int(limit)]
+            except ValueError:
+                pass
+
+        return queryset
