@@ -1,0 +1,42 @@
+name: 機能追加・改善
+description: 新機能の追加や機能の追加・改善に係るIssueを作成するフォームです。
+type: Feature
+projects: ["fusetsu-corp/1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 新機能の追加及び改善
+        新機能の追加や改善に係る詳細について、以下に記述してください。
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 背景、目的、及び期待される効果
+      description: なぜこの機能が必要なのか、この機能の実装によってどのような効果が期待されるかを記載してください。
+      placeholder: |
+        - 毎月エクセルで手動集計しているため、作業時間削減を目的として機能を追加したい
+        - ユーザーのアクセス数の傾向を把握し、SEOに役立てる
+        - データの集計ミスの発生を防止
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature_summary
+    attributes:
+      label: 機能の概要及び予定している追加・修正内容
+      description: 機能の概要及び予定している追加・修正内容を記載してください。
+      placeholder: |
+        - ダッシュボード画面に新しい「アクセスレポート」セクションを追加
+        - スタイルはMUIを中心に利用することとし、****.tsxに以下のコードを追加
+        - レポートは過去6か月分を表示
+        - CSVダウンロード機能を追加
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: 追加情報
+      description: 関連する情報や参考リンクがあれば記載してください。
+      placeholder: 例）競合他社のスクリーンショットや参考URL

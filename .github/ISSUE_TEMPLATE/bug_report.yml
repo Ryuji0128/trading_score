@@ -1,0 +1,84 @@
+name: バグ改善・報告
+description: アプリケーションで発生したバグの改善及び報告に係るIssueを作成するフォームです。
+type: Bug
+projects: ["fusetsu-corp/1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## バグ改善・報告
+        以下のフォームに必要な情報を入力してください。  
+
+  - type: input
+    id: bug_summary
+    attributes:
+      label: バグの概要
+      description: バグの内容を簡潔に記述してください。
+      placeholder: 例）ログイン画面で「500エラー」が発生する
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: 再現手順
+      description: バグが再現する手順を順を追って記述してください。
+      placeholder: |
+        1. ログイン画面を開く
+        2. 正しいユーザー名とパスワードを入力
+        3. ログインボタンをクリック
+        4. 500エラーが表示される
+    validations:
+      required: true
+
+  - type: textarea
+    id: modification_and_expected_behavior
+    attributes:
+      label: 修正内容及び期待される動作
+      description: 予定している修正内容と、本来期待される動作を説明してください。
+      placeholder: |
+        - ****.tsxのuseEffectを以下のとおり修正する。
+        - 結果、500エラーが表示されず、APIが正常に作動することが期待される。
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 動作環境
+      description: 問題が発生した環境について記載してください。
+      placeholder: |
+        - OS: Windows 11 / macOS Ventura
+        - ブラウザ: Chrome 120.0.0 / Firefox 115.0
+        - アプリバージョン: v2.3.1
+
+  - type: textarea
+    id: logs_screenshots
+    attributes:
+      label: スクリーンショット / ログ
+      description: その他必要に応じて、エラーのスクリーンショットやログを添付してください。
+      placeholder: ドラッグアンドドロップで画像を追加できます。
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 重要度
+      description: バグの重要度を選択してください。
+      options:
+        - 🟢 低 (Minor)
+        - 🟡 中 (Moderate)
+        - 🔴 高 (Critical)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 確認項目
+      description: 以下の項目を確認してください。
+      options:
+        - label: ドキュメントや既存のIssueを確認しました
+          required: true
+        - label: バグの再現性を確認しました
+          required: true
+        - label: ログやスクリーンショットを確認・添付しました（必要に応じて）

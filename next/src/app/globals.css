@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FAFBFC;
+  --foreground: #263238;
+  --primary: #1565C0;
+  --primary-light: #64B5F6;
+  --secondary: #00ACC1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #FAFBFC;
+    --foreground: #263238;
+    --primary: #1565C0;
+    --primary-light: #64B5F6;
+    --secondary: #00ACC1;
+  }
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.grecaptcha-badge { visibility: hidden; }
+
+@font-face {
+  font-family: 'Yuji Syuku';
+  src: url('./fonts/YujiSyuku-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap; /* フォントの読み込みが完了するまで代替フォントを表示 */
+}

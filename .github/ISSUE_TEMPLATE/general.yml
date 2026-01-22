@@ -1,0 +1,33 @@
+name: 一般的な課題
+description: タスクや相談内容を記録するためのフォームです。
+type: Task
+projects: ["fusetsu-corp/1"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## タスク、質問、相談
+        タスク、質問、相談などを以下に記載してください。
+
+  - type: input
+    id: issue_summary
+    attributes:
+      label: 概要
+      description: Issueの概要を簡潔に記載してください。
+      placeholder: 例）プロジェクトのディレクトリ構造の整理
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue_details
+    attributes:
+      label: 詳細
+      description: このIssueの詳細を記載してください。
+      placeholder: 例）プロジェクトの可読性を向上させるために、ディレクトリ構造を見直し、READMEを更新します。
+
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: 追加情報
+      description: 関連する情報やリンクを記載してください（任意）。
+      placeholder: 例）リファクタリングのベストプラクティス記事やスクリーンショット
