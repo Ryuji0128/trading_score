@@ -1,21 +1,4 @@
 services:
-  next:
-    image: ghcr.io/ryuji0128/seta-hp:latest 
-    container_name: next_app
-    ports:
-      - "2999:3000"
-    env_file:
-      - ./next/.env
-    environment:
-      - DATABASE_URL=mysql://app_user:${MYSQL_PASSWORD:-app_pass}@mysql:3306/app_db
-      # - NEXTAUTH_URL=https://setaseisakusyo.com
-      - NEXTAUTH_TRUST_HOST=true
-    depends_on:
-      mysql:
-        condition: service_healthy
-    restart: unless-stopped
-    mem_limit: 512m
-
   mysql:
     image: mysql:8.0
     container_name: mysql_db
@@ -27,11 +10,42 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-app_pass}
     volumes:
       - ./mysql/data:/var/lib/mysql
+    ports:
+      - "3306:3306"  # デバッグ用
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 5s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+      start_period: 30s
+
+  django:
+    build: ./django
+    container_name: django_app
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./django/.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./django:/app
+
+  next:
+    build: ./next
+    container_name: next_app
+    ports:
+      - "2999:3000"
+    env_file:
+      - ./next/.env
+    environment:
+      - NEXT_PUBLIC_API_URL=http://django:8000/api
+      - NEXTAUTH_TRUST_HOST=true
+    depends_on:
+      - django
+    restart: unless-stopped
 
   nginx:
     image: nginx:latest
@@ -45,3 +59,4 @@ services:
     command: /bin/sh -c "envsubst '$$SERVER_NAME' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
     depends_on:
       - next
+      - django

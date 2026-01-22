@@ -1,0 +1,320 @@
+[
+    {
+      "model": "api.team",
+      "pk": 16,
+      "fields": {
+        "city": "New York",
+        "nickname": "Mets",
+        "full_name": "New York Mets",
+        "abbreviation": "NYM",
+        "slug": "new-york-mets",
+        "league": "NL",
+        "division": "EAST",
+        "founded_year": 1962,
+        "ballpark": "Citi Field",
+        "logo_url": "",
+        "primary_color": "#002D72",
+        "is_active": true,
+        "order": 1,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 17,
+      "fields": {
+        "city": "Atlanta",
+        "nickname": "Braves",
+        "full_name": "Atlanta Braves",
+        "abbreviation": "ATL",
+        "slug": "atlanta-braves",
+        "league": "NL",
+        "division": "EAST",
+        "founded_year": 1871,
+        "ballpark": "Truist Park",
+        "logo_url": "",
+        "primary_color": "#CE1141",
+        "is_active": true,
+        "order": 2,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 18,
+      "fields": {
+        "city": "Philadelphia",
+        "nickname": "Phillies",
+        "full_name": "Philadelphia Phillies",
+        "abbreviation": "PHI",
+        "slug": "philadelphia-phillies",
+        "league": "NL",
+        "division": "EAST",
+        "founded_year": 1883,
+        "ballpark": "Citizens Bank Park",
+        "logo_url": "",
+        "primary_color": "#E81828",
+        "is_active": true,
+        "order": 3,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 19,
+      "fields": {
+        "city": "Miami",
+        "nickname": "Marlins",
+        "full_name": "Miami Marlins",
+        "abbreviation": "MIA",
+        "slug": "miami-marlins",
+        "league": "NL",
+        "division": "EAST",
+        "founded_year": 1993,
+        "ballpark": "loanDepot park",
+        "logo_url": "",
+        "primary_color": "#00A3E0",
+        "is_active": true,
+        "order": 4,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 20,
+      "fields": {
+        "city": "Washington",
+        "nickname": "Nationals",
+        "full_name": "Washington Nationals",
+        "abbreviation": "WSH",
+        "slug": "washington-nationals",
+        "league": "NL",
+        "division": "EAST",
+        "founded_year": 1969,
+        "ballpark": "Nationals Park",
+        "logo_url": "",
+        "primary_color": "#AB0003",
+        "is_active": true,
+        "order": 5,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+  
+    {
+      "model": "api.team",
+      "pk": 21,
+      "fields": {
+        "city": "Chicago",
+        "nickname": "Cubs",
+        "full_name": "Chicago Cubs",
+        "abbreviation": "CHC",
+        "slug": "chicago-cubs",
+        "league": "NL",
+        "division": "CENTRAL",
+        "founded_year": 1876,
+        "ballpark": "Wrigley Field",
+        "logo_url": "",
+        "primary_color": "#0E3386",
+        "is_active": true,
+        "order": 1,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 22,
+      "fields": {
+        "city": "St. Louis",
+        "nickname": "Cardinals",
+        "full_name": "St. Louis Cardinals",
+        "abbreviation": "STL",
+        "slug": "st-louis-cardinals",
+        "league": "NL",
+        "division": "CENTRAL",
+        "founded_year": 1882,
+        "ballpark": "Busch Stadium",
+        "logo_url": "",
+        "primary_color": "#C41E3A",
+        "is_active": true,
+        "order": 2,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 23,
+      "fields": {
+        "city": "Milwaukee",
+        "nickname": "Brewers",
+        "full_name": "Milwaukee Brewers",
+        "abbreviation": "MIL",
+        "slug": "milwaukee-brewers",
+        "league": "NL",
+        "division": "CENTRAL",
+        "founded_year": 1969,
+        "ballpark": "American Family Field",
+        "logo_url": "",
+        "primary_color": "#12284B",
+        "is_active": true,
+        "order": 3,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 24,
+      "fields": {
+        "city": "Cincinnati",
+        "nickname": "Reds",
+        "full_name": "Cincinnati Reds",
+        "abbreviation": "CIN",
+        "slug": "cincinnati-reds",
+        "league": "NL",
+        "division": "CENTRAL",
+        "founded_year": 1882,
+        "ballpark": "Great American Ball Park",
+        "logo_url": "",
+        "primary_color": "#C6011F",
+        "is_active": true,
+        "order": 4,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 25,
+      "fields": {
+        "city": "Pittsburgh",
+        "nickname": "Pirates",
+        "full_name": "Pittsburgh Pirates",
+        "abbreviation": "PIT",
+        "slug": "pittsburgh-pirates",
+        "league": "NL",
+        "division": "CENTRAL",
+        "founded_year": 1887,
+        "ballpark": "PNC Park",
+        "logo_url": "",
+        "primary_color": "#FDB827",
+        "is_active": true,
+        "order": 5,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+  
+    {
+      "model": "api.team",
+      "pk": 26,
+      "fields": {
+        "city": "Los Angeles",
+        "nickname": "Dodgers",
+        "full_name": "Los Angeles Dodgers",
+        "abbreviation": "LAD",
+        "slug": "los-angeles-dodgers",
+        "league": "NL",
+        "division": "WEST",
+        "founded_year": 1883,
+        "ballpark": "Dodger Stadium",
+        "logo_url": "",
+        "primary_color": "#005A9C",
+        "is_active": true,
+        "order": 1,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 27,
+      "fields": {
+        "city": "San Francisco",
+        "nickname": "Giants",
+        "full_name": "San Francisco Giants",
+        "abbreviation": "SF",
+        "slug": "san-francisco-giants",
+        "league": "NL",
+        "division": "WEST",
+        "founded_year": 1883,
+        "ballpark": "Oracle Park",
+        "logo_url": "",
+        "primary_color": "#FD5A1E",
+        "is_active": true,
+        "order": 2,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 28,
+      "fields": {
+        "city": "San Diego",
+        "nickname": "Padres",
+        "full_name": "San Diego Padres",
+        "abbreviation": "SD",
+        "slug": "san-diego-padres",
+        "league": "NL",
+        "division": "WEST",
+        "founded_year": 1969,
+        "ballpark": "Petco Park",
+        "logo_url": "",
+        "primary_color": "#2F241D",
+        "is_active": true,
+        "order": 3,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 29,
+      "fields": {
+        "city": "Arizona",
+        "nickname": "Diamondbacks",
+        "full_name": "Arizona Diamondbacks",
+        "abbreviation": "ARI",
+        "slug": "arizona-diamondbacks",
+        "league": "NL",
+        "division": "WEST",
+        "founded_year": 1998,
+        "ballpark": "Chase Field",
+        "logo_url": "",
+        "primary_color": "#A71930",
+        "is_active": true,
+        "order": 4,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 30,
+      "fields": {
+        "city": "Colorado",
+        "nickname": "Rockies",
+        "full_name": "Colorado Rockies",
+        "abbreviation": "COL",
+        "slug": "colorado-rockies",
+        "league": "NL",
+        "division": "WEST",
+        "founded_year": 1993,
+        "ballpark": "Coors Field",
+        "logo_url": "",
+        "primary_color": "#33006F",
+        "is_active": true,
+        "order": 5,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    }
+  ]
+  

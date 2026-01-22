@@ -1,0 +1,4 @@
+
+#実行cmd
+python manage.py loaddata mlb_teams_al.json
+python manage.py loaddata mlb_teams_nl.json

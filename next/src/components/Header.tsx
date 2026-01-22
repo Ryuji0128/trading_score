@@ -106,7 +106,7 @@ export default function Header() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  瀬田製作所
+                  MLB Fanatic
                 </Typography>
               </Box>
             </Link>

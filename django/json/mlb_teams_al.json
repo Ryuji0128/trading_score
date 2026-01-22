@@ -1,0 +1,320 @@
+[
+    {
+      "model": "api.team",
+      "pk": 1,
+      "fields": {
+        "city": "New York",
+        "nickname": "Yankees",
+        "full_name": "New York Yankees",
+        "abbreviation": "NYY",
+        "slug": "new-york-yankees",
+        "league": "AL",
+        "division": "EAST",
+        "founded_year": 1901,
+        "ballpark": "Yankee Stadium",
+        "logo_url": "",
+        "primary_color": "#003087",
+        "is_active": true,
+        "order": 1,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 2,
+      "fields": {
+        "city": "Boston",
+        "nickname": "Red Sox",
+        "full_name": "Boston Red Sox",
+        "abbreviation": "BOS",
+        "slug": "boston-red-sox",
+        "league": "AL",
+        "division": "EAST",
+        "founded_year": 1901,
+        "ballpark": "Fenway Park",
+        "logo_url": "",
+        "primary_color": "#BD3039",
+        "is_active": true,
+        "order": 2,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 3,
+      "fields": {
+        "city": "Toronto",
+        "nickname": "Blue Jays",
+        "full_name": "Toronto Blue Jays",
+        "abbreviation": "TOR",
+        "slug": "toronto-blue-jays",
+        "league": "AL",
+        "division": "EAST",
+        "founded_year": 1977,
+        "ballpark": "Rogers Centre",
+        "logo_url": "",
+        "primary_color": "#134A8E",
+        "is_active": true,
+        "order": 3,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 4,
+      "fields": {
+        "city": "Tampa Bay",
+        "nickname": "Rays",
+        "full_name": "Tampa Bay Rays",
+        "abbreviation": "TB",
+        "slug": "tampa-bay-rays",
+        "league": "AL",
+        "division": "EAST",
+        "founded_year": 1998,
+        "ballpark": "Tropicana Field",
+        "logo_url": "",
+        "primary_color": "#092C5C",
+        "is_active": true,
+        "order": 4,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 5,
+      "fields": {
+        "city": "Baltimore",
+        "nickname": "Orioles",
+        "full_name": "Baltimore Orioles",
+        "abbreviation": "BAL",
+        "slug": "baltimore-orioles",
+        "league": "AL",
+        "division": "EAST",
+        "founded_year": 1901,
+        "ballpark": "Oriole Park at Camden Yards",
+        "logo_url": "",
+        "primary_color": "#DF4601",
+        "is_active": true,
+        "order": 5,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+  
+    {
+      "model": "api.team",
+      "pk": 6,
+      "fields": {
+        "city": "Chicago",
+        "nickname": "White Sox",
+        "full_name": "Chicago White Sox",
+        "abbreviation": "CWS",
+        "slug": "chicago-white-sox",
+        "league": "AL",
+        "division": "CENTRAL",
+        "founded_year": 1901,
+        "ballpark": "Guaranteed Rate Field",
+        "logo_url": "",
+        "primary_color": "#000000",
+        "is_active": true,
+        "order": 1,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 7,
+      "fields": {
+        "city": "Cleveland",
+        "nickname": "Guardians",
+        "full_name": "Cleveland Guardians",
+        "abbreviation": "CLE",
+        "slug": "cleveland-guardians",
+        "league": "AL",
+        "division": "CENTRAL",
+        "founded_year": 1901,
+        "ballpark": "Progressive Field",
+        "logo_url": "",
+        "primary_color": "#00385D",
+        "is_active": true,
+        "order": 2,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 8,
+      "fields": {
+        "city": "Detroit",
+        "nickname": "Tigers",
+        "full_name": "Detroit Tigers",
+        "abbreviation": "DET",
+        "slug": "detroit-tigers",
+        "league": "AL",
+        "division": "CENTRAL",
+        "founded_year": 1901,
+        "ballpark": "Comerica Park",
+        "logo_url": "",
+        "primary_color": "#0C2340",
+        "is_active": true,
+        "order": 3,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 9,
+      "fields": {
+        "city": "Kansas City",
+        "nickname": "Royals",
+        "full_name": "Kansas City Royals",
+        "abbreviation": "KC",
+        "slug": "kansas-city-royals",
+        "league": "AL",
+        "division": "CENTRAL",
+        "founded_year": 1969,
+        "ballpark": "Kauffman Stadium",
+        "logo_url": "",
+        "primary_color": "#004687",
+        "is_active": true,
+        "order": 4,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 10,
+      "fields": {
+        "city": "Minnesota",
+        "nickname": "Twins",
+        "full_name": "Minnesota Twins",
+        "abbreviation": "MIN",
+        "slug": "minnesota-twins",
+        "league": "AL",
+        "division": "CENTRAL",
+        "founded_year": 1901,
+        "ballpark": "Target Field",
+        "logo_url": "",
+        "primary_color": "#002B5C",
+        "is_active": true,
+        "order": 5,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+  
+    {
+      "model": "api.team",
+      "pk": 11,
+      "fields": {
+        "city": "Houston",
+        "nickname": "Astros",
+        "full_name": "Houston Astros",
+        "abbreviation": "HOU",
+        "slug": "houston-astros",
+        "league": "AL",
+        "division": "WEST",
+        "founded_year": 1962,
+        "ballpark": "Minute Maid Park",
+        "logo_url": "",
+        "primary_color": "#EB6E1F",
+        "is_active": true,
+        "order": 1,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 12,
+      "fields": {
+        "city": "Oakland",
+        "nickname": "Athletics",
+        "full_name": "Oakland Athletics",
+        "abbreviation": "OAK",
+        "slug": "oakland-athletics",
+        "league": "AL",
+        "division": "WEST",
+        "founded_year": 1901,
+        "ballpark": "Oakland Coliseum",
+        "logo_url": "",
+        "primary_color": "#003831",
+        "is_active": true,
+        "order": 2,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 13,
+      "fields": {
+        "city": "Seattle",
+        "nickname": "Mariners",
+        "full_name": "Seattle Mariners",
+        "abbreviation": "SEA",
+        "slug": "seattle-mariners",
+        "league": "AL",
+        "division": "WEST",
+        "founded_year": 1977,
+        "ballpark": "T-Mobile Park",
+        "logo_url": "",
+        "primary_color": "#0C2C56",
+        "is_active": true,
+        "order": 3,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 14,
+      "fields": {
+        "city": "Los Angeles",
+        "nickname": "Angels",
+        "full_name": "Los Angeles Angels",
+        "abbreviation": "LAA",
+        "slug": "los-angeles-angels",
+        "league": "AL",
+        "division": "WEST",
+        "founded_year": 1961,
+        "ballpark": "Angel Stadium",
+        "logo_url": "",
+        "primary_color": "#BA0021",
+        "is_active": true,
+        "order": 4,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    },
+    {
+      "model": "api.team",
+      "pk": 15,
+      "fields": {
+        "city": "Texas",
+        "nickname": "Rangers",
+        "full_name": "Texas Rangers",
+        "abbreviation": "TEX",
+        "slug": "texas-rangers",
+        "league": "AL",
+        "division": "WEST",
+        "founded_year": 1961,
+        "ballpark": "Globe Life Field",
+        "logo_url": "",
+        "primary_color": "#003278",
+        "is_active": true,
+        "order": 5,
+        "created_at": "2024-01-01T00:00:00Z",
+        "updated_at": "2024-01-01T00:00:00Z"
+      }
+    }
+  ]
+  

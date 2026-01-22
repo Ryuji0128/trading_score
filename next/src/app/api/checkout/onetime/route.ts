@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
           price_data: {
             currency: "jpy",
             product_data: {
-              name: "瀬田製作所 - お支払い",
+              name: "MLB Fanatic - お支払い",
               description: `¥${amount.toLocaleString()}のお支払い`,
             },
             unit_amount: amount,

@@ -1,6 +1,4 @@
 import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import LinkToContactPage from "@/components/LinkToContactPage";
 import { SimpleBarWrapper } from "@/components/SimpleBarWrapper";
 import theme from "@/theme/theme";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v15-appRouter";
@@ -10,9 +8,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "瀬田製作所",
+  title: "MLB Fanatic - メジャーリーグを語る",
   description:
-    "瀬田製作所は、Webアプリケーションやモバイルアプリの開発を中心に、多様なプロジェクトで信頼を得ているエンジニアチームです。先進技術を用いた、最適なソリューションを提供します。",
+    "メジャーリーグの試合速報、選手分析、統計データ、移籍情報まで。メジャーリーグの魅力を余すことなくお届けするブログです。",
 };
 
 export default function RootLayout({
@@ -27,9 +25,7 @@ export default function RootLayout({
           <ThemeProvider theme={theme}>
             <CssBaseline />
             <SimpleBarWrapper>
-              <Header />
               {children}
-              <LinkToContactPage />
               <Footer />
             </SimpleBarWrapper>
           </ThemeProvider>

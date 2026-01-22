@@ -1,16 +1,18 @@
 "use client";
 
-import { googleAuthenticate } from "@/actions/google-login";
-import { useActionState } from "react";
-import { Box, Button, Alert } from "@mui/material";
+// import { googleAuthenticate } from "@/actions/google-login"; // 認証機能は後から実装
+// import { useActionState } from "react";
 import GoogleIcon from "@mui/icons-material/Google";
+import { Alert, Box, Button } from "@mui/material";
 
 const GoogleLogin = () => {
-  const [errorMsgGoogle, dispatchGoogle] = useActionState(googleAuthenticate, undefined);
+  // 認証機能は後から実装予定
+  const handleGoogleLogin = () => {
+    alert("Google認証機能は現在準備中です");
+  };
 
   return (
     <Box
-      component="form"
       maxWidth={400}
       sx={{
         display: "flex",
@@ -19,10 +21,9 @@ const GoogleLogin = () => {
         width: "100%",
         gap: 2,
       }}
-      action={dispatchGoogle}
     >
       <Button
-        type="submit"
+        onClick={handleGoogleLogin}
         variant="outlined"
         fullWidth
         startIcon={<GoogleIcon />}
@@ -40,14 +41,12 @@ const GoogleLogin = () => {
           },
         }}
       >
-        Googleでログイン
+        Googleでログイン（準備中）
       </Button>
 
-      {errorMsgGoogle?.messages && errorMsgGoogle.messages.length > 0 && (
-        <Alert severity="error" sx={{ width: "100%" }}>
-          {errorMsgGoogle.messages.join(", ")}
-        </Alert>
-      )}
+      <Alert severity="info" sx={{ width: "100%" }}>
+        Google認証機能は現在実装中です
+      </Alert>
     </Box>
   );
 };

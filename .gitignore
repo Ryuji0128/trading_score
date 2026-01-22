@@ -52,6 +52,14 @@ node_modules/
 # next.js
 .next/
 
+# django
+/django/api/__py*
+/django/api/migrations/__py*
+/django/config/__py*
+/django/api/management/__py*
+/django/api/management/commands/__py*
+/django/staticfiles/*
+
 # yarn
 .yarn-integrity
 
