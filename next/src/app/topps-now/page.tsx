@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Box, Container, Typography, Chip, Paper, CircularProgress } from "@mui/material";
+import { Box, Container, Typography, Chip, Paper, CircularProgress, Link } from "@mui/material";
 import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
 import MLBLayout from "@/components/MLBLayout";
 import StyleIcon from "@mui/icons-material/Style";
@@ -11,15 +11,17 @@ interface ToppsCard {
   card_number: string;
   player: {
     full_name: string;
-    team: {
-      full_name: string;
-      abbreviation: string;
-      primary_color: string;
-    } | null;
+  } | null;
+  team: {
+    full_name: string;
+    abbreviation: string;
+    primary_color: string;
   } | null;
   title: string;
   total_print: number | null;
   image_url: string;
+  product_url: string;
+  product_url_long: string;
   created_at: string;
   topps_set: {
     year: number;
@@ -123,6 +125,53 @@ export default function ToppsNowPage() {
       headerClassName: 'data-grid-header',
       sortComparator: sortCardNumber,
       filterable: true,
+      renderCell: (params) => {
+        const shortUrl = params.row.product_url;
+        const longUrl = params.row.product_url_long;
+        const hasTwoUrls = shortUrl && longUrl && shortUrl !== longUrl;
+
+        if (shortUrl) {
+          return (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Link
+                href={shortUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  color: '#1a472a',
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  '&:hover': {
+                    textDecoration: 'underline',
+                    color: '#2e7d32',
+                  },
+                }}
+              >
+                {params.value}
+              </Link>
+              {hasTwoUrls && (
+                <Link
+                  href={longUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{
+                    color: '#666',
+                    fontSize: '0.75rem',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                      color: '#2e7d32',
+                    },
+                  }}
+                >
+                  (別)
+                </Link>
+              )}
+            </Box>
+          );
+        }
+        return params.value;
+      },
     },
     {
       field: 'player',
@@ -137,7 +186,7 @@ export default function ToppsNowPage() {
       headerName: 'チーム',
       width: 180,
       headerClassName: 'data-grid-header',
-      valueGetter: (value, row) => row.player?.team?.full_name || '-',
+      valueGetter: (value, row) => row.team?.full_name || '-',
       filterable: true,
     },
     {

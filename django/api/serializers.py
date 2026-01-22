@@ -147,6 +147,6 @@ class ToppsCardSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'topps_set', 'card_number', 'player', 'team',
             'title', 'total_print', 'image_url', 'is_rookie',
-            'created_at'
+            'product_url', 'product_url_long', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']

@@ -4,18 +4,19 @@ import { Box, Avatar, List, ListItem, ListItemIcon, ListItemText, ListItemButton
 import HomeIcon from "@mui/icons-material/Home";
 import ArticleIcon from "@mui/icons-material/Article";
 import SportsBaseballIcon from "@mui/icons-material/SportsBaseball";
-import StarIcon from "@mui/icons-material/Star";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import InfoIcon from "@mui/icons-material/Info";
-import ContactMailIcon from "@mui/icons-material/ContactMail";
 import StyleIcon from "@mui/icons-material/Style";
 import LoginIcon from "@mui/icons-material/Login";
+import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
+import SportsIcon from "@mui/icons-material/Sports";
 
 const menuItems = [
   { text: "ホーム", icon: <HomeIcon />, path: "/" },
   { text: "ブログ", icon: <ArticleIcon />, path: "/blog" },
   { text: "Topps Now", icon: <StyleIcon />, path: "/topps-now" },
-  { text: "統計データ", icon: <TrendingUpIcon />, path: "/stats" },
+  { text: "MLB順位表", icon: <TrendingUpIcon />, path: "/stats" },
+  { text: "最近の試合結果", icon: <SportsIcon />, path: "/games" },
+  { text: "チーム一覧", icon: <EmojiEventsIcon />, path: "/teams" },
   { text: "ログイン", icon: <LoginIcon />, path: "/login" },
 ];
 

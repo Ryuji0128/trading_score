@@ -67,3 +67,5 @@ node_modules/
 mysql/data/
 
 docker-compose.override.yml
+
+backups/*

@@ -180,6 +180,7 @@ class Division(models.TextChoices):
 
 class Team(models.Model):
     id = models.AutoField(primary_key=True)
+    mlb_team_id = models.IntegerField(null=True, blank=True, unique=True, help_text="MLB公式APIのチームID")
 
     city = models.CharField(max_length=100)
     nickname = models.CharField(max_length=100)
@@ -310,12 +311,54 @@ class ToppsCard(models.Model):
     title = models.CharField(max_length=255, blank=True)
     is_rookie = models.BooleanField(default=False)
     image_url = models.CharField(max_length=500, blank=True)
+    product_url = models.CharField(max_length=500, blank=True, help_text="Topps公式商品ページURL（短い形式）")
+    product_url_long = models.CharField(max_length=500, blank=True, help_text="Topps公式商品ページURL（長い形式）")
 
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = [["topps_set", "card_number"]]
         ordering = ["topps_set", "card_number"]
+
+    def generate_product_urls(self):
+        """タイトルから2種類のTopps公式商品ページURLを生成する"""
+        if not self.title:
+            return "", ""
+
+        import re
+        import urllib.parse
+
+        def make_slug(text):
+            slug = text.lower()
+            slug = re.sub(r'\s*/\s*', '-', slug)
+            slug = re.sub(r'\s*-\s*', '-', slug)
+            slug = re.sub(r'\s+', '-', slug)
+            slug = re.sub(r'-+', '-', slug)
+            slug = slug.strip('-')
+            return urllib.parse.quote(slug, safe='-')
+
+        # 短いURL: "Card XXX" の後を全て削除
+        short_title = re.sub(r'(Card\s+[\w-]+).*', r'\1', self.title, flags=re.IGNORECASE | re.DOTALL)
+        short_slug = make_slug(short_title)
+        short_url = f"https://www.topps.com/products/{short_slug}"
+
+        # 長いURL: "PR: XXX" と改行以降を削除（LOOK FORは残す）
+        # まず改行を削除
+        single_line = self.title.replace('\n', ' ').replace('\r', ' ')
+        # PR: 以降を削除
+        long_title = re.sub(r'\s*-\s*PR:\s*[\d,]+.*$', '', single_line, flags=re.IGNORECASE)
+        long_slug = make_slug(long_title)
+        long_url = f"https://www.topps.com/products/{long_slug}"
+
+        return short_url, long_url
+
+    def save(self, *args, **kwargs):
+        # 保存時にproduct_urlが空の場合は自動生成
+        if not self.product_url and self.title:
+            short_url, long_url = self.generate_product_urls()
+            self.product_url = short_url
+            self.product_url_long = long_url
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.topps_set} #{self.card_number} {self.player.full_name}"
