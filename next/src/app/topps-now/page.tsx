@@ -1,27 +1,34 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Box, Container, Typography, Chip, Paper, CircularProgress, Link } from "@mui/material";
-import { DataGrid, GridColDef, GridToolbar } from "@mui/x-data-grid";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Box, Container, Typography, Chip, Paper, CircularProgress, Link, Switch, FormControlLabel, Snackbar, Alert } from "@mui/material";
+import { DataGrid, GridColDef, GridToolbar, GridRowModesModel, GridRowModes, GridEventListener, GridRowEditStopReasons, GridRowId } from "@mui/x-data-grid";
 import MLBLayout from "@/components/MLBLayout";
 import StyleIcon from "@mui/icons-material/Style";
+import EditIcon from "@mui/icons-material/Edit";
 
 interface ToppsCard {
   id: number;
   card_number: string;
   player: {
+    id: number;
     full_name: string;
+    mlb_player_id: number | null;
   } | null;
   team: {
     full_name: string;
     abbreviation: string;
+    nickname: string;
     primary_color: string;
+    mlb_team_id: number | null;
   } | null;
   title: string;
   total_print: number | null;
   image_url: string;
   product_url: string;
   product_url_long: string;
+  release_date: string | null;
+  mlb_game_id: number | null;
   created_at: string;
   topps_set: {
     year: number;
@@ -29,9 +36,47 @@ interface ToppsCard {
   };
 }
 
+interface User {
+  id: number;
+  email: string;
+  is_superuser: boolean;
+}
+
 export default function ToppsNowPage() {
   const [toppsCards, setToppsCards] = useState<ToppsCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  // ユーザー情報を取得
+  useEffect(() => {
+    const fetchUser = async () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      try {
+        const response = await fetch('/api/auth/me/', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     const fetchToppsCards = async () => {
@@ -50,6 +95,60 @@ export default function ToppsNowPage() {
     };
 
     fetchToppsCards();
+  }, []);
+
+  const isSuperuser = user?.is_superuser ?? false;
+
+  // カード更新処理
+  const handleProcessRowUpdate = useCallback(async (newRow: ToppsCard, oldRow: ToppsCard) => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      throw new Error('認証が必要です');
+    }
+
+    try {
+      const response = await fetch(`/api/topps-cards/${newRow.id}/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          product_url: newRow.product_url,
+          product_url_long: newRow.product_url_long,
+          release_date: newRow.release_date,
+          total_print: newRow.total_print,
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || '更新に失敗しました');
+      }
+
+      const updatedCard = await response.json();
+      setSnackbar({ open: true, message: '更新しました', severity: 'success' });
+
+      // 更新されたカードをマージ（ネストされたオブジェクトを保持）
+      const mergedCard = {
+        ...oldRow,
+        product_url: updatedCard.product_url,
+        product_url_long: updatedCard.product_url_long,
+        release_date: updatedCard.release_date,
+        total_print: updatedCard.total_print,
+      };
+
+      // ローカルステートを更新
+      setToppsCards(prev => prev.map(card => card.id === newRow.id ? mergedCard : card));
+      return mergedCard;
+    } catch (error) {
+      setSnackbar({ open: true, message: error instanceof Error ? error.message : '更新に失敗しました', severity: 'error' });
+      throw error;
+    }
+  }, []);
+
+  const handleProcessRowUpdateError = useCallback((error: Error) => {
+    setSnackbar({ open: true, message: error.message, severity: 'error' });
   }, []);
 
   // カード番号のソート関数
@@ -128,46 +227,27 @@ export default function ToppsNowPage() {
       renderCell: (params) => {
         const shortUrl = params.row.product_url;
         const longUrl = params.row.product_url_long;
-        const hasTwoUrls = shortUrl && longUrl && shortUrl !== longUrl;
+        // product_url を優先、なければ product_url_long を使用
+        const linkUrl = shortUrl || longUrl;
 
-        if (shortUrl) {
+        if (linkUrl) {
           return (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Link
-                href={shortUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                sx={{
-                  color: '#1a472a',
-                  fontWeight: 600,
-                  textDecoration: 'none',
-                  '&:hover': {
-                    textDecoration: 'underline',
-                    color: '#2e7d32',
-                  },
-                }}
-              >
-                {params.value}
-              </Link>
-              {hasTwoUrls && (
-                <Link
-                  href={longUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{
-                    color: '#666',
-                    fontSize: '0.75rem',
-                    textDecoration: 'none',
-                    '&:hover': {
-                      textDecoration: 'underline',
-                      color: '#2e7d32',
-                    },
-                  }}
-                >
-                  (別)
-                </Link>
-              )}
-            </Box>
+            <Link
+              href={linkUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                color: '#1a472a',
+                fontWeight: 600,
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: '#2e7d32',
+                },
+              }}
+            >
+              {params.value}
+            </Link>
           );
         }
         return params.value;
@@ -180,6 +260,28 @@ export default function ToppsNowPage() {
       headerClassName: 'data-grid-header',
       valueGetter: (value, row) => row.player?.full_name || 'Team Set',
       filterable: true,
+      renderCell: (params) => {
+        const player = params.row.player;
+        if (player && player.mlb_player_id) {
+          return (
+            <Link
+              href={`/players/${player.id}`}
+              sx={{
+                color: '#1a472a',
+                fontWeight: 500,
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: '#2e7d32',
+                },
+              }}
+            >
+              {player.full_name}
+            </Link>
+          );
+        }
+        return player?.full_name || 'Team Set';
+      },
     },
     {
       field: 'team',
@@ -190,23 +292,141 @@ export default function ToppsNowPage() {
       filterable: true,
     },
     {
-      field: 'title',
-      headerName: 'タイトル',
-      flex: 1,
-      minWidth: 300,
-      headerClassName: 'data-grid-header',
-      filterable: true,
-    },
-    {
       field: 'total_print',
       headerName: '発行枚数',
       width: 130,
       type: 'number',
       headerClassName: 'data-grid-header',
-      valueFormatter: (value) => value ? value.toLocaleString() : '-',
+      editable: editMode,
+      valueFormatter: (value: number | null) => value ? value.toLocaleString() : '-',
       filterable: true,
     },
-  ], []);
+    // 編集モード時のみURLと発行日を編集可能列として追加
+    ...(editMode ? [
+      {
+        field: 'product_url',
+        headerName: '商品URL',
+        width: 200,
+        headerClassName: 'data-grid-header',
+        editable: true,
+        filterable: false,
+      },
+      {
+        field: 'product_url_long',
+        headerName: '商品URL (長)',
+        width: 200,
+        headerClassName: 'data-grid-header',
+        editable: true,
+        filterable: false,
+      },
+    ] as GridColDef[] : []),
+    {
+      field: 'release_date',
+      headerName: '発行日',
+      width: 130,
+      headerClassName: 'data-grid-header',
+      editable: editMode,
+      type: editMode ? 'date' : undefined,
+      valueGetter: (value) => {
+        if (!value) return null;
+        if (editMode) {
+          return new Date(value);
+        }
+        return value;
+      },
+      valueSetter: (value, row) => {
+        if (value instanceof Date) {
+          return { ...row, release_date: value.toISOString().split('T')[0] };
+        }
+        return { ...row, release_date: value };
+      },
+      renderCell: (params) => {
+        if (editMode) return null; // 編集モード時はデフォルト表示
+
+        const releaseDate = params.row.release_date;
+        if (!releaseDate) return '-';
+
+        const date = new Date(releaseDate);
+        const formattedDate = date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        // mlb_game_idが保存されている場合は直接リンク
+        const mlbGameId = params.row.mlb_game_id;
+        if (mlbGameId) {
+          return (
+            <Link
+              href={`https://www.mlb.com/gameday/${mlbGameId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                color: '#1a472a',
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: '#2e7d32',
+                },
+              }}
+            >
+              {formattedDate}
+            </Link>
+          );
+        }
+
+        // mlb_game_idがない場合はAPIを呼び出す
+        const gameDate = new Date(date);
+        gameDate.setDate(gameDate.getDate() - 1);
+        const gameDateStr = gameDate.toISOString().split('T')[0];
+
+        const team = params.row.team;
+
+        const handleClick = async (e: React.MouseEvent) => {
+          e.preventDefault();
+
+          if (team?.mlb_team_id) {
+            try {
+              const response = await fetch(`/api/mlb/game/?team_id=${team.mlb_team_id}&date=${gameDateStr}`);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.game_url) {
+                  window.open(data.game_url, '_blank');
+                  return;
+                }
+              }
+            } catch (error) {
+              console.error('Failed to fetch game ID:', error);
+            }
+          }
+
+          // フォールバック
+          if (team?.nickname) {
+            const teamSlug = team.nickname.toLowerCase().replace(/\s+/g, '-');
+            window.open(`https://www.mlb.com/${teamSlug}/schedule/${gameDateStr}`, '_blank');
+          } else {
+            window.open(`https://www.mlb.com/scores/${gameDateStr}`, '_blank');
+          }
+        };
+
+        return (
+          <Link
+            href="#"
+            onClick={handleClick}
+            sx={{
+              color: '#1a472a',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              '&:hover': {
+                textDecoration: 'underline',
+                color: '#2e7d32',
+              },
+            }}
+          >
+            {formattedDate}
+          </Link>
+        );
+      },
+      filterable: true,
+      sortable: true,
+    },
+  ], [editMode]);
 
   // 統計情報を計算
   const stats = useMemo(() => {
@@ -391,22 +611,55 @@ export default function ToppsNowPage() {
 
         {/* データテーブル */}
         <Box>
-          <Box sx={{ mb: 4 }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 800,
-                mb: 1,
-                background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              カード一覧
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              全{toppsCards.length}件のカードデータ
-            </Typography>
+          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: 800,
+                  mb: 1,
+                  background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                カード一覧
+              </Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                全{toppsCards.length}件のカードデータ
+              </Typography>
+            </Box>
+            {isSuperuser && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={editMode}
+                    onChange={(e) => setEditMode(e.target.checked)}
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: '#2e7d32',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: '#2e7d32',
+                      },
+                    }}
+                  />
+                }
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    <EditIcon fontSize="small" />
+                    編集モード
+                  </Box>
+                }
+                sx={{
+                  bgcolor: editMode ? 'rgba(46, 125, 50, 0.1)' : 'transparent',
+                  px: 2,
+                  py: 0.5,
+                  borderRadius: 2,
+                  border: editMode ? '1px solid #2e7d32' : '1px solid transparent',
+                }}
+              />
+            )}
           </Box>
 
           {loading ? (
@@ -434,12 +687,15 @@ export default function ToppsNowPage() {
               <DataGrid
                 rows={toppsCards}
                 columns={columns}
+                editMode="row"
+                processRowUpdate={handleProcessRowUpdate}
+                onProcessRowUpdateError={handleProcessRowUpdateError}
                 initialState={{
                   pagination: {
                     paginationModel: { page: 0, pageSize: 25 },
                   },
                   sorting: {
-                    sortModel: [{ field: 'created_at', sort: 'desc' }],
+                    sortModel: [{ field: 'card_number', sort: 'asc' }],
                   },
                 }}
                 pageSizeOptions={[10, 25, 50, 100]}
@@ -449,7 +705,6 @@ export default function ToppsNowPage() {
                     showQuickFilter: true,
                     quickFilterProps: {
                       debounceMs: 500,
-                      placeholder: 'カード番号、選手名、チーム、タイトルで検索...',
                     },
                   },
                 }}
@@ -463,6 +718,9 @@ export default function ToppsNowPage() {
                   },
                   '& .MuiDataGrid-row:hover': {
                     backgroundColor: '#f8fdf9',
+                  },
+                  '& .MuiDataGrid-cell--editing': {
+                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
                   },
                 }}
               />
@@ -479,6 +737,22 @@ export default function ToppsNowPage() {
           )}
         </Box>
       </Container>
+
+      {/* 更新通知 */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </MLBLayout>
   );
 }

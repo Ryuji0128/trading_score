@@ -231,6 +231,10 @@ class Position(models.TextChoices):
 
 class Player(models.Model):
     id = models.AutoField(primary_key=True)
+    mlb_player_id = models.PositiveIntegerField(
+        null=True, blank=True, unique=True,
+        help_text="MLB Stats API の選手ID"
+    )
 
     team = models.ForeignKey(
         Team,
@@ -270,6 +274,93 @@ class Player(models.Model):
 
     def __str__(self):
         return self.full_name
+
+
+# =========================
+# Player Stats
+# =========================
+
+class StatType(models.TextChoices):
+    HITTING = "hitting", "Hitting"
+    PITCHING = "pitching", "Pitching"
+
+
+class PlayerStats(models.Model):
+    id = models.AutoField(primary_key=True)
+
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name="stats"
+    )
+    season = models.PositiveIntegerField(help_text="シーズン年")
+    stat_type = models.CharField(
+        max_length=10,
+        choices=StatType.choices,
+        help_text="成績タイプ（打撃/投球）"
+    )
+
+    # 打撃成績
+    games = models.PositiveIntegerField(null=True, blank=True, help_text="試合数")
+    at_bats = models.PositiveIntegerField(null=True, blank=True, help_text="打数")
+    runs = models.PositiveIntegerField(null=True, blank=True, help_text="得点")
+    hits = models.PositiveIntegerField(null=True, blank=True, help_text="安打数")
+    doubles = models.PositiveIntegerField(null=True, blank=True, help_text="二塁打")
+    triples = models.PositiveIntegerField(null=True, blank=True, help_text="三塁打")
+    home_runs = models.PositiveIntegerField(null=True, blank=True, help_text="本塁打")
+    rbi = models.PositiveIntegerField(null=True, blank=True, help_text="打点")
+    stolen_bases = models.PositiveIntegerField(null=True, blank=True, help_text="盗塁")
+    batting_avg = models.DecimalField(
+        max_digits=4, decimal_places=3, null=True, blank=True,
+        help_text="打率"
+    )
+    obp = models.DecimalField(
+        max_digits=4, decimal_places=3, null=True, blank=True,
+        help_text="出塁率"
+    )
+    slg = models.DecimalField(
+        max_digits=4, decimal_places=3, null=True, blank=True,
+        help_text="長打率"
+    )
+    ops = models.DecimalField(
+        max_digits=4, decimal_places=3, null=True, blank=True,
+        help_text="OPS"
+    )
+
+    # 投球成績
+    wins = models.PositiveIntegerField(null=True, blank=True, help_text="勝利")
+    losses = models.PositiveIntegerField(null=True, blank=True, help_text="敗北")
+    era = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="防御率"
+    )
+    games_pitched = models.PositiveIntegerField(null=True, blank=True, help_text="登板試合数")
+    games_started = models.PositiveIntegerField(null=True, blank=True, help_text="先発試合数")
+    saves = models.PositiveIntegerField(null=True, blank=True, help_text="セーブ")
+    innings_pitched = models.DecimalField(
+        max_digits=5, decimal_places=1, null=True, blank=True,
+        help_text="投球回"
+    )
+    strikeouts = models.PositiveIntegerField(null=True, blank=True, help_text="奪三振")
+    walks_allowed = models.PositiveIntegerField(null=True, blank=True, help_text="与四球")
+    whip = models.DecimalField(
+        max_digits=4, decimal_places=2, null=True, blank=True,
+        help_text="WHIP"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = [["player", "season", "stat_type"]]
+        ordering = ["-season", "stat_type"]
+        indexes = [
+            models.Index(fields=["season"]),
+            models.Index(fields=["stat_type"]),
+        ]
+
+    def __str__(self):
+        return f"{self.player.full_name} {self.season} {self.stat_type}"
 
 
 # =========================
@@ -313,6 +404,8 @@ class ToppsCard(models.Model):
     image_url = models.CharField(max_length=500, blank=True)
     product_url = models.CharField(max_length=500, blank=True, help_text="Topps公式商品ページURL（短い形式）")
     product_url_long = models.CharField(max_length=500, blank=True, help_text="Topps公式商品ページURL（長い形式）")
+    release_date = models.DateField(null=True, blank=True, help_text="カード発行日")
+    mlb_game_id = models.PositiveIntegerField(null=True, blank=True, help_text="MLB Game ID（試合日のgameday ID）")
 
     created_at = models.DateTimeField(auto_now_add=True)
 

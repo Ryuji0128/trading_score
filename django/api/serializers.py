@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
     Account, Session, VerificationToken, News, Inquiry, Blog,
-    Team, Player, ToppsSet, ToppsCard, ToppsCardVariant
+    Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant
 )
 
 User = get_user_model()
@@ -120,15 +120,39 @@ class TokenSerializer(serializers.Serializer):
 class TeamSerializer(serializers.ModelSerializer):
     class Meta:
         model = Team
-        fields = ['id', 'city', 'nickname', 'full_name', 'abbreviation', 'league', 'division', 'primary_color']
+        fields = ['id', 'mlb_team_id', 'city', 'nickname', 'full_name', 'abbreviation', 'league', 'division', 'primary_color']
+
+
+class PlayerStatsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PlayerStats
+        fields = [
+            'id', 'season', 'stat_type',
+            # 打撃成績
+            'games', 'at_bats', 'runs', 'hits', 'doubles', 'triples',
+            'home_runs', 'rbi', 'stolen_bases', 'batting_avg', 'obp', 'slg', 'ops',
+            # 投球成績
+            'wins', 'losses', 'era', 'games_pitched', 'games_started',
+            'saves', 'innings_pitched', 'strikeouts', 'walks_allowed', 'whip',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class PlayerSerializer(serializers.ModelSerializer):
     team = TeamSerializer(read_only=True)
+    stats = PlayerStatsSerializer(many=True, read_only=True)
 
     class Meta:
         model = Player
-        fields = ['id', 'full_name', 'first_name', 'last_name', 'team', 'jersey_number', 'position']
+        fields = ['id', 'full_name', 'first_name', 'last_name', 'team', 'jersey_number', 'position', 'mlb_player_id', 'stats']
+
+
+class PlayerSimpleSerializer(serializers.ModelSerializer):
+    """カード一覧用の軽量シリアライザー（成績を含まない）"""
+    class Meta:
+        model = Player
+        fields = ['id', 'full_name', 'mlb_player_id']
 
 
 class ToppsSetSerializer(serializers.ModelSerializer):
@@ -138,7 +162,7 @@ class ToppsSetSerializer(serializers.ModelSerializer):
 
 
 class ToppsCardSerializer(serializers.ModelSerializer):
-    player = PlayerSerializer(read_only=True)
+    player = PlayerSimpleSerializer(read_only=True)
     team = TeamSerializer(read_only=True)
     topps_set = ToppsSetSerializer(read_only=True)
 
@@ -147,6 +171,7 @@ class ToppsCardSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'topps_set', 'card_number', 'player', 'team',
             'title', 'total_print', 'image_url', 'is_rookie',
-            'product_url', 'product_url_long', 'created_at'
+            'product_url', 'product_url_long', 'release_date', 'mlb_game_id', 'created_at'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'player', 'team', 'topps_set', 'card_number']
+        # 更新可能フィールド: product_url, product_url_long, release_date, total_print, title, image_url

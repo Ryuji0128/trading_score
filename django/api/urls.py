@@ -3,8 +3,8 @@ from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     UserViewSet, AccountViewSet, SessionViewSet, VerificationTokenViewSet,
-    NewsViewSet, InquiryViewSet, BlogViewSet, ToppsCardViewSet,
-    login_view, register_view, current_user_view
+    NewsViewSet, InquiryViewSet, BlogViewSet, ToppsCardViewSet, PlayerViewSet,
+    login_view, register_view, current_user_view, get_game_id
 )
 
 router = DefaultRouter()
@@ -16,6 +16,7 @@ router.register(r'news', NewsViewSet, basename='news')
 router.register(r'inquiries', InquiryViewSet, basename='inquiry')
 router.register(r'blogs', BlogViewSet, basename='blog')
 router.register(r'topps-cards', ToppsCardViewSet, basename='topps-card')
+router.register(r'players', PlayerViewSet, basename='player')
 
 urlpatterns = [
     # Authentication endpoints
@@ -23,6 +24,9 @@ urlpatterns = [
     path('auth/register/', register_view, name='register'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', current_user_view, name='current_user'),
+
+    # MLB API endpoints
+    path('mlb/game/', get_game_id, name='get_game_id'),
 
     # Router URLs
     path('', include(router.urls)),

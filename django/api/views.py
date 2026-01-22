@@ -6,13 +6,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
 from .models import (
     Account, Session, VerificationToken, News, Inquiry, Blog,
-    Team, Player, ToppsSet, ToppsCard, ToppsCardVariant
+    Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant
 )
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     AccountSerializer, SessionSerializer, VerificationTokenSerializer,
     NewsSerializer, InquirySerializer, BlogSerializer,
-    LoginSerializer, ToppsCardSerializer
+    LoginSerializer, ToppsCardSerializer, PlayerSerializer
 )
 
 User = get_user_model()
@@ -209,16 +209,72 @@ def current_user_view(request):
     return Response(serializer.data)
 
 
-class ToppsCardViewSet(viewsets.ReadOnlyModelViewSet):
+class PlayerViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Topps NOW card read-only operations
+    Player read-only operations with stats
+    """
+    queryset = Player.objects.all().select_related('team').prefetch_related('stats')
+    serializer_class = PlayerSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        # フィルタリングオプション
+        name = self.request.query_params.get('name', None)
+        team_id = self.request.query_params.get('team_id', None)
+        has_stats = self.request.query_params.get('has_stats', None)
+
+        if name:
+            queryset = queryset.filter(full_name__icontains=name)
+        if team_id:
+            queryset = queryset.filter(team_id=team_id)
+        if has_stats == 'true':
+            queryset = queryset.filter(stats__isnull=False).distinct()
+
+        return queryset
+
+
+class ToppsCardViewSet(viewsets.ModelViewSet):
+    """
+    Topps NOW card operations - read for all, write for superuser only
     """
     queryset = ToppsCard.objects.all().select_related(
         'player', 'team', 'topps_set'
     ).order_by('-created_at')
     serializer_class = ToppsCardSerializer
-    permission_classes = [AllowAny]
     pagination_class = None  # ページネーションを無効化
+
+    def get_permissions(self):
+        # 読み取り（list, retrieve）は誰でもアクセス可能
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        # 更新・削除はsuperuserのみ
+        return [IsAuthenticated()]
+
+    def update(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'superuserのみがカード情報を更新できます'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'superuserのみがカード情報を更新できます'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'superuserのみがカードを削除できます'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -242,3 +298,61 @@ class ToppsCardViewSet(viewsets.ReadOnlyModelViewSet):
                 pass
 
         return queryset
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_game_id(request):
+    """
+    MLB Stats APIからチームの試合IDを取得
+    パラメータ:
+        - team_id: MLBチームID
+        - date: 日付 (YYYY-MM-DD形式)
+    """
+    try:
+        import statsapi
+    except ImportError:
+        return Response(
+            {'error': 'MLB-StatsAPI is not installed'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    team_id = request.query_params.get('team_id')
+    date = request.query_params.get('date')
+
+    if not team_id or not date:
+        return Response(
+            {'error': 'team_id and date are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        # 日付フォーマットを変換 (YYYY-MM-DD -> MM/DD/YYYY)
+        from datetime import datetime
+        date_obj = datetime.strptime(date, '%Y-%m-%d')
+        date_formatted = date_obj.strftime('%m/%d/%Y')
+
+        games = statsapi.schedule(date=date_formatted, team=int(team_id))
+
+        if games:
+            game = games[0]
+            return Response({
+                'game_id': game['game_id'],
+                'away_team': game['away_name'],
+                'home_team': game['home_name'],
+                'away_score': game.get('away_score'),
+                'home_score': game.get('home_score'),
+                'status': game.get('status'),
+                'game_url': f"https://www.mlb.com/gameday/{game['game_id']}"
+            })
+        else:
+            return Response(
+                {'error': 'No game found', 'game_id': None},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

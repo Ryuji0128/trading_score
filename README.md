@@ -1,23 +1,13 @@
-#瀬田製作所 ホームページ
+# MLB Trading Card Database (Topps NOW)
 
-
+MLBトレーディングカード（Topps NOW）のデータベースアプリケーション。
 
 ## 概要
 
-瀬田製作所のホームページプロジェクト。[Next.js 15](https://nextjs.org/)をベースに構築し、App Routerを採用。React、MUIを中心としたフロントエンド技術を使用。
-
-## 目次
-
-- [クイックスタート](#クイックスタート)
-- [Docker環境の構成](#docker環境の構成)
-- [環境変数の設定](#環境変数の設定)
-- [開発コマンド](#開発コマンド)
-- [本番デプロイ](#本番デプロイ)
-- [主要技術スタック](#主要技術スタック)
-- [ディレクトリ構成](#ディレクトリ構成)
-- [開発ルール](#開発ルール)
-- [DB運用](#db運用)
-- [その他設定](#その他設定)
+Topps NOW カードの情報を管理・閲覧するためのフルスタックアプリケーション。
+- **フロントエンド**: Next.js 15 (App Router) + React 19 + MUI
+- **バックエンド**: Django REST Framework + MySQL 8.0
+- **インフラ**: Docker Compose + Nginx
 
 ## クイックスタート
 
@@ -30,56 +20,86 @@
 
 ```bash
 # 1. リポジトリをクローン
-git clone https://github.com/Ryuji0128/seta-hp.git
-cd seta-hp
+git clone <repository-url>
+cd trading_score
 
 # 2. 環境変数ファイルを配置
 cp next/.env.example next/.env
-# .envファイルを編集して必要な値を設定
+cp django/.env.example django/.env
 
 # 3. Docker環境を起動
 docker compose up -d
 
-# 4. ブラウザでアクセス
+# 4. Djangoマイグレーション
+docker compose exec django python manage.py migrate
+
+# 5. ブラウザでアクセス
 # http://localhost:80 (Nginx経由)
-# http://localhost:2999 (Next.js直接)
-```
-
-### 停止
-
-```bash
-docker compose down
 ```
 
 ## Docker環境の構成
 
 | サービス | コンテナ名 | ポート | 説明 |
 |---------|-----------|--------|------|
-| next | next_app | 2999:3000 | Next.jsアプリケーション |
+| next | next_app | 2999:3000 | Next.jsフロントエンド |
+| django | django_app | 8000 | Django REST API |
 | mysql | mysql_db | 3306 | MySQL 8.0 データベース |
 | nginx | nginx_proxy | 80:80 | リバースプロキシ |
 
 ### アーキテクチャ
 
 ```
-[ブラウザ] → [nginx:80] → [next:3000] → [mysql:3306]
+[ブラウザ] → [nginx:80] → [next:3000] (フロントエンド)
+                       → [django:8000/api] (API)
+                              ↓
+                         [mysql:3306]
 ```
 
-## 環境変数の設定
+## 主要機能
 
-`next/.env`ファイルに以下を設定：
+### カードデータ管理
 
-```env
-# 認証
-AUTH_SECRET=your-secret-key-here
-NEXTAUTH_URL=http://localhost:2999
+- Topps NOW カード情報の登録・編集・削除
+- 選手・チーム情報との連携
+- 発行日（release_date）の自動取得
 
-# データベース
-DATABASE_URL=mysql://app_user:app_pass@mysql:3306/app_db
+### データスクレイピング
 
-# Google OAuth（オプション）
-AUTH_GOOGLE_ID=your-google-client-id
-AUTH_GOOGLE_SECRET=your-google-client-secret
+Topps公式サイトからカード情報を自動取得するDjango管理コマンド:
+
+```bash
+# Topps NOW アーカイブからカード情報をスクレイピング
+docker compose exec django python manage.py toppsNow_archive --max-cards 100
+
+# 商品URLを生成
+docker compose exec django python manage.py generate_product_urls
+
+# 発行日をスクレイピング
+docker compose exec django python manage.py scrape_release_dates --limit 100 --delay 5
+```
+
+### MLB Stats API 連携
+
+MLB公式API（MLB-StatsAPI）を使用して選手成績・試合情報を取得:
+
+```bash
+# 選手名からMLB Player IDを取得・紐付け
+docker compose exec django python manage.py sync_mlb_players --limit 0
+
+# 選手の打撃・投球成績を取得
+docker compose exec django python manage.py fetch_player_stats --season 2025 --limit 0
+
+# カードの試合日からMLB Game IDを取得・紐付け
+docker compose exec django python manage.py fetch_game_ids --limit 0
+```
+
+### 共通オプション
+
+```bash
+#   --dry-run   実際に保存せず確認のみ
+#   --limit N   処理するカード数（0で全件）
+#   --force     既存データも上書き
+#   --delay N   リクエスト間隔（秒）
 ```
 
 ## 開発コマンド
@@ -92,147 +112,137 @@ docker compose up -d
 docker compose down
 
 # ログ確認
-docker compose logs -f        # 全コンテナ
-docker compose logs -f next   # Next.jsのみ
+docker compose logs -f django
 
-# コンテナ再ビルド（Dockerfile変更時）
+# Djangoマイグレーション作成
+docker compose exec django python manage.py makemigrations
+
+# Djangoマイグレーション適用
+docker compose exec django python manage.py migrate
+
+# Django管理シェル
+docker compose exec django python manage.py shell
+
+# コンテナ再ビルド
 docker compose up -d --build
-
-# Prismaマイグレーション
-docker compose exec next npx prisma migrate dev
-
-# Prismaクライアント再生成
-docker compose exec next npx prisma generate
-
-# コンテナ内でシェル実行
-docker compose exec next sh
 ```
 
-## 本番デプロイ
+## ディレクトリ構成
 
-GitHub Actionsによる自動デプロイ：
-
-1. `develop` → `main` へのPRをマージ
-2. 自動的にテスト実行
-3. テスト成功後、本番サーバーへSSHデプロイ
-
-### 手動デプロイ
-
-```bash
-ssh your-server
-cd ~/seta-hp
-git pull origin main
-docker compose up -d --build
-docker compose exec next npx prisma migrate deploy
+```
+trading_score/
+├── docker-compose.yml
+├── nginx/
+│   └── default.conf.template
+├── mysql/
+│   └── data/                   # MySQLデータ（gitignore）
+├── django/
+│   ├── Dockerfile
+│   ├── .env
+│   ├── manage.py
+│   ├── config/                 # Django設定
+│   ├── api/
+│   │   ├── models.py           # データモデル
+│   │   ├── views.py            # APIエンドポイント
+│   │   ├── serializers.py
+│   │   └── management/
+│   │       └── commands/       # 管理コマンド
+│   │           ├── toppsNow_archive.py
+│   │           ├── scrape_release_dates.py
+│   │           └── ...
+│   └── json/                   # 初期データ
+└── next/
+    ├── Dockerfile
+    ├── .env
+    └── src/
+        ├── app/                # ページ
+        │   └── topps-now/
+        └── components/
 ```
 
-## 主要技術スタック
+## データモデル
+
+### ToppsCard（カード）
+
+| フィールド | 型 | 説明 |
+|-----------|------|------|
+| topps_set | FK | カードセット |
+| player | FK | 選手 |
+| team | FK | チーム |
+| card_number | CharField | カード番号 |
+| title | CharField | タイトル |
+| total_print | Integer | 発行枚数 |
+| image_url | CharField | 画像URL |
+| product_url | CharField | Topps商品ページURL（短） |
+| product_url_long | CharField | Topps商品ページURL（長） |
+| release_date | DateField | 発行日 |
+| mlb_game_id | Integer | MLB Game ID（試合ページへのリンク用） |
+
+### Player（選手）
+
+| フィールド | 型 | 説明 |
+|-----------|------|------|
+| full_name | CharField | 氏名 |
+| first_name | CharField | 名 |
+| last_name | CharField | 姓 |
+| team | FK | 所属チーム |
+| jersey_number | Integer | 背番号 |
+| position | CharField | ポジション |
+| mlb_player_id | Integer | MLB Stats API 選手ID |
+
+### PlayerStats（選手成績）
+
+| フィールド | 型 | 説明 |
+|-----------|------|------|
+| player | FK | 選手 |
+| season | Integer | シーズン年 |
+| stat_type | CharField | 成績タイプ（hitting/pitching） |
+| games | Integer | 試合数 |
+| batting_avg | Decimal | 打率 |
+| home_runs | Integer | 本塁打 |
+| rbi | Integer | 打点 |
+| era | Decimal | 防御率 |
+| wins | Integer | 勝利数 |
+| strikeouts | Integer | 奪三振 |
+| ... | | その他多数の成績フィールド |
+
+### 関連モデル
+
+- **ToppsSet**: カードセット（年度・シリーズ）
+- **Team**: MLBチーム（30チーム、mlb_team_id連携）
+- **ToppsCardVariant**: カードバリエーション（パラレル等）
+
+## API エンドポイント
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET | /api/topps-cards/ | カード一覧取得 |
+| GET | /api/topps-cards/{id}/ | カード詳細取得 |
+| GET | /api/players/{id}/ | 選手詳細取得（成績含む） |
+| GET | /api/mlb/game/ | MLB Game ID取得（team_id, date指定） |
+
+## 技術スタック
 
 ### フロントエンド
 - TypeScript
 - React 19
 - Next.js 15 (App Router)
 - MUI (Material UI)
-- Tailwind CSS
-- Framer Motion
 
 ### バックエンド
-- Next.js API Routes
-- Prisma ORM
-- Auth.js (NextAuth)
+- Python 3.11
+- Django 5.0
+- Django REST Framework
+- Selenium（スクレイピング用）
+
+### データベース
 - MySQL 8.0
 
 ### インフラ
 - Docker / Docker Compose
 - Nginx
-- GitHub Actions (CI/CD)
-- Google Cloud Platform (本番)
 
-## ディレクトリ構成
+## 注意事項
 
-```
-seta-hp/
-├── docker-compose.yml      # Docker Compose設定
-├── nginx/
-│   └── default.conf        # Nginx設定
-├── mysql/
-│   └── data/               # MySQLデータ（gitignore）
-└── next/
-    ├── Dockerfile          # Next.jsコンテナ設定
-    ├── .env                # 環境変数（gitignore）
-    ├── .env.example        # 環境変数テンプレート
-    ├── prisma/
-    │   ├── schema.prisma   # DBスキーマ定義
-    │   └── migrations/     # マイグレーション履歴
-    └── src/
-        ├── app/            # ページ・APIルート
-        ├── components/     # 共通コンポーネント
-        ├── lib/            # ユーティリティ
-        └── theme/          # MUIテーマ設定
-```
-
-## 開発ルール
-
-### ブランチ運用
-
-- `main` - 本番環境
-- `develop` - 開発統合ブランチ
-- `feature/*` - 新機能開発
-- `fix/*` - バグ修正
-
-### ブランチ命名規則
-
-```
-feature/0034_create-top-page
-fix/0035_login-error
-```
-
-### プルリクエスト
-
-1. `develop`から作業ブランチを作成
-2. 実装・コミット
-3. `develop`へPR作成
-4. レビュー後マージ
-5. `develop` → `main`へPRでリリース
-
-## DB運用
-
-### スキーマ変更時
-
-```bash
-# 1. schema.prismaを編集
-
-# 2. マイグレーション作成
-docker compose exec next npx prisma migrate dev --name your_migration_name
-
-# 3. クライアント再生成（自動で実行されるが念のため）
-docker compose exec next npx prisma generate
-```
-
-### トラブルシューティング
-
-```bash
-# Prismaキャッシュクリア
-docker compose exec next sh -c "rm -rf node_modules/.prisma && npx prisma generate"
-
-# DB接続確認
-docker compose exec mysql mysql -u app_user -papp_pass app_db
-```
-
-## その他設定
-
-### Azure MSAL（問い合わせメール）
-
-MS 365との連携設定は別途ドキュメント参照。
-
-### reCAPTCHA v3
-
-問い合わせフォームのスパム対策として導入。
-
-### Sitemap
-
-`next-sitemap`で自動生成。Google Search Consoleに登録済み。
-
-## ライセンス
-
-このプロジェクトは瀬田製作所に帰属します。
+- スクレイピングはToppsサイトのCloudflare対策のため、各リクエスト間に待機時間を設けています
+- 大量のカードを処理する場合は時間がかかります（1件あたり約7秒）
