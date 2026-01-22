@@ -149,11 +149,54 @@ class InquiryViewSet(viewsets.ModelViewSet):
 
 class BlogViewSet(viewsets.ModelViewSet):
     """
-    Blog CRUD operations
+    Blog CRUD operations - Only superusers can create/update/delete
     """
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        # 読み取り（list, retrieve）は誰でもアクセス可能
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        # 作成・更新・削除はsuperuserのみ
+        return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'superuserのみがブログを投稿できます'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        # 著者を自動設定
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(author=request.user)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'superuserのみがブログを更新できます'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'superuserのみがブログを更新できます'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if not request.user.is_superuser:
+            return Response(
+                {'error': 'superuserのみがブログを削除できます'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 @api_view(['GET'])

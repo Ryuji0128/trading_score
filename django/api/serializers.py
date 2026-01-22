@@ -13,8 +13,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'name', 'username', 'email', 'email_verified', 'role', 'image', 'created_at', 'updated_at', 'provider']
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'username', 'email', 'email_verified', 'role', 'image', 'is_superuser', 'is_staff', 'created_at', 'updated_at', 'provider']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'is_superuser', 'is_staff']
 
     def get_provider(self, obj):
         account = obj.accounts.first()
@@ -96,10 +96,13 @@ class InquirySerializer(serializers.ModelSerializer):
 
 
 class BlogSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source='author.name', read_only=True)
+    author_email = serializers.EmailField(source='author.email', read_only=True)
+
     class Meta:
         model = Blog
-        fields = '__all__'
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'content', 'image_url', 'author', 'author_name', 'author_email', 'published', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'author_name', 'author_email']
 
 
 # JWT Token Serializers

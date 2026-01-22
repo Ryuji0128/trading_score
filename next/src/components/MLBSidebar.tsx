@@ -9,12 +9,14 @@ import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import InfoIcon from "@mui/icons-material/Info";
 import ContactMailIcon from "@mui/icons-material/ContactMail";
 import StyleIcon from "@mui/icons-material/Style";
+import LoginIcon from "@mui/icons-material/Login";
 
 const menuItems = [
   { text: "ホーム", icon: <HomeIcon />, path: "/" },
-  { text: "MLBブログ", icon: <SportsBaseballIcon />, path: "/discription" },
+  { text: "ブログ", icon: <ArticleIcon />, path: "/blog" },
   { text: "Topps Now", icon: <StyleIcon />, path: "/topps-now" },
   { text: "統計データ", icon: <TrendingUpIcon />, path: "/stats" },
+  { text: "ログイン", icon: <LoginIcon />, path: "/login" },
 ];
 
 interface MLBSidebarProps {
