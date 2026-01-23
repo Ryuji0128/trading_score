@@ -13,32 +13,7 @@ import {
 } from "@mui/material";
 import MLBLayout from "@/components/MLBLayout";
 import SportsIcon from "@mui/icons-material/Sports";
-
-interface Game {
-  gamePk: number;
-  gameDate: string;
-  status: {
-    detailedState: string;
-  };
-  teams: {
-    away: {
-      team: {
-        id: number;
-        name: string;
-      };
-      score?: number;
-      isWinner?: boolean;
-    };
-    home: {
-      team: {
-        id: number;
-        name: string;
-      };
-      score?: number;
-      isWinner?: boolean;
-    };
-  };
-}
+import type { Game } from "@/lib/types";
 
 export default function GamesPage() {
   const [recentGames, setRecentGames] = useState<Game[]>([]);

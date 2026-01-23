@@ -13,53 +13,7 @@ import PublicIcon from "@mui/icons-material/Public";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SportsCricketIcon from "@mui/icons-material/SportsCricket";
-
-interface WBCTournament {
-  id: number;
-  year: number;
-  champion: string;
-  runner_up: string;
-  game_count: number;
-  country_count: number;
-}
-
-interface WBCGame {
-  id: number;
-  game_pk: number;
-  game_date: string;
-  away_team: string;
-  home_team: string;
-  away_score: number | null;
-  home_score: number | null;
-  status: string;
-}
-
-interface WBCTournamentDetail {
-  id: number;
-  year: number;
-  champion: string;
-  runner_up: string;
-  games: WBCGame[];
-}
-
-interface WBCRosterEntry {
-  id: number;
-  country: string;
-  mlb_player_id: number;
-  player_name: string;
-  player: number | null;
-  has_topps_card: boolean;
-}
-
-interface PlayerCard {
-  id: number;
-  card_number: string;
-  title: string;
-  total_print: number | null;
-  release_date: string | null;
-  image_url: string;
-  product_url: string;
-}
+import type { WBCTournament, WBCGame, WBCTournamentDetail, WBCRosterEntry, PlayerCard } from "@/lib/types";
 
 export default function WBCPage() {
   const [tournaments, setTournaments] = useState<WBCTournament[]>([]);

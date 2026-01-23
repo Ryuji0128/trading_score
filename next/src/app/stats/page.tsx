@@ -23,35 +23,7 @@ import {
 } from "@mui/material";
 import MLBLayout from "@/components/MLBLayout";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-
-interface TeamStanding {
-  team: {
-    id: number;
-    name: string;
-  };
-  leagueRecord: {
-    wins: number;
-    losses: number;
-    pct: string;
-  };
-  gamesBack: string;
-  wildCardGamesBack: string;
-  divisionRank: string;
-  streak: {
-    streakCode: string;
-  };
-  runsScored: number;
-  runsAllowed: number;
-}
-
-interface DivisionStandings {
-  division: {
-    id: number;
-    name: string;
-    abbreviation?: string;
-  };
-  teamRecords: TeamStanding[];
-}
+import type { TeamStanding, DivisionStandings } from "@/lib/types";
 
 // Division ID to name mapping
 const DIVISION_NAMES: { [key: number]: string } = {

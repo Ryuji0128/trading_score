@@ -6,14 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import MLBLayout from "@/components/MLBLayout";
 import SaveIcon from "@mui/icons-material/Save";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-
-interface Blog {
-  id: number;
-  title: string;
-  content: string;
-  image_url: string | null;
-  published: boolean;
-}
+import type { Blog } from "@/lib/types";
 
 export default function BlogEditPage() {
   const router = useRouter();

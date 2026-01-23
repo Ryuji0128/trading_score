@@ -7,18 +7,7 @@ import MLBLayout from "@/components/MLBLayout";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-
-interface Blog {
-  id: number;
-  title: string;
-  content: string;
-  image_url: string | null;
-  author_name: string | null;
-  author_email: string | null;
-  published: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import type { Blog } from "@/lib/types";
 
 export default function BlogDetailPage() {
   const [blog, setBlog] = useState<Blog | null>(null);
