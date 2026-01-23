@@ -43,10 +43,10 @@ export default function MLBSidebar({ activePath = "/" }: MLBSidebarProps) {
           <SportsBaseballIcon sx={{ fontSize: 40 }} />
         </Avatar>
         <Typography variant="h6" sx={{ color: "white", fontWeight: 700, mb: 0.5 }}>
-          MLB Fanatic
+          MLB Note
         </Typography>
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.7)" }}>
-          メジャーリーグを語る
+          個人的MLBデータまとめ
         </Typography>
       </Box>
 
@@ -82,7 +82,7 @@ export default function MLBSidebar({ activePath = "/" }: MLBSidebarProps) {
 
       <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, p: 3, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
         <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", display: "block", textAlign: "center" }}>
-          © 2024 MLB Blog
+          © 2025 MLB Note
         </Typography>
       </Box>
     </Box>

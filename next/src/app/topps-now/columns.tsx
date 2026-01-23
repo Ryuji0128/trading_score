@@ -153,7 +153,7 @@ export function getColumns(editMode: boolean, teams: Team[]): GridColDef[] {
               if (response.ok) {
                 const data = await response.json();
                 if (data.game_url) {
-                  window.open(data.game_url, '_blank');
+                  window.open(data.game_url, '_blank', 'noopener,noreferrer');
                   return;
                 }
               }
@@ -164,9 +164,9 @@ export function getColumns(editMode: boolean, teams: Team[]): GridColDef[] {
 
           if (team?.nickname) {
             const teamSlug = team.nickname.toLowerCase().replace(/\s+/g, '-');
-            window.open(`https://www.mlb.com/${teamSlug}/schedule/${gameDateStr}`, '_blank');
+            window.open(`https://www.mlb.com/${teamSlug}/schedule/${gameDateStr}`, '_blank', 'noopener,noreferrer');
           } else {
-            window.open(`https://www.mlb.com/scores/${gameDateStr}`, '_blank');
+            window.open(`https://www.mlb.com/scores/${gameDateStr}`, '_blank', 'noopener,noreferrer');
           }
         };
 

@@ -40,11 +40,11 @@ const AboutSection = () => {
                 opacity: 0.9,
               }}
             >
-              MLB Fanaticは「メジャーリーグを語る」をモットーに、
-              試合速報、選手分析、統計データまで幅広くカバーしています。
+              Topps NOWカードの発行データやWBCの出場選手情報など、
+              個人的に気になるMLBのデータを集めています。
               <br /><br />
-              大谷翔平の活躍から若手プロスペクトまで。
-              メジャーリーグの魅力を深く掘り下げていきます。
+              自分用のメモとして作ったサイトですが、
+              同じようにMLBのデータに興味がある方の参考になれば幸いです。
             </Typography>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {features.map((feature, index) => (

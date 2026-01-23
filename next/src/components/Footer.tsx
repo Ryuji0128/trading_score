@@ -32,7 +32,7 @@ export default function Footer() {
         }}
       >
         <Typography variant="body1" color="inherit">
-          &copy; {new Date().getFullYear()} MLB Fanatic
+          &copy; {new Date().getFullYear()} MLB Note
         </Typography>
         <Box
           sx={{

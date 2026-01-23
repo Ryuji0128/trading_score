@@ -1,41 +1,51 @@
 "use client";
 
-import { Box, Container, Typography, Chip, Paper, Grid } from "@mui/material";
+import { useMemo } from "react";
+import { Box, Container, Typography, Chip, Card, CardContent, CardMedia, Skeleton } from "@mui/material";
+import { useRouter } from "next/navigation";
+import useSWR from "swr";
 import MLBLayout from "@/components/MLBLayout";
 import SportsBaseballIcon from "@mui/icons-material/SportsBaseball";
-import NewReleasesIcon from "@mui/icons-material/NewReleases";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import StarIcon from "@mui/icons-material/Star";
-
-const featuredStories = [
-  {
-    title: "大谷翔平、今季3度目の猛打賞",
-    category: "試合速報",
-    date: "2024年1月20日",
-    image: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-  },
-  {
-    title: "ドジャース、補強に積極姿勢",
-    category: "移籍情報",
-    date: "2024年1月19日",
-    image: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
-  },
-  {
-    title: "若手有望株ランキングTOP10",
-    category: "プロスペクト",
-    date: "2024年1月18日",
-    image: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
-  },
-];
-
-const quickLinks = [
-  { title: "今日の試合結果", icon: <SportsBaseballIcon />, color: "#2e7d32" },
-  { title: "最新ニュース", icon: <NewReleasesIcon />, color: "#1976d2" },
-  { title: "順位表", icon: <TrendingUpIcon />, color: "#f57c00" },
-  { title: "選手ランキング", icon: <StarIcon />, color: "#7b1fa2" },
-];
+import StyleIcon from "@mui/icons-material/Style";
+import ArticleIcon from "@mui/icons-material/Article";
+import type { Blog, ToppsCard } from "@/lib/types";
+import { fetcher } from "@/lib/fetcher";
 
 export default function HomePage() {
+  const router = useRouter();
+
+  // ブログ取得
+  const { data: blogsData, isLoading: blogsLoading } = useSWR('/api/blogs/', fetcher, { revalidateOnFocus: false });
+  const blogs: Blog[] = useMemo(() => {
+    if (!blogsData) return [];
+    const list = blogsData.results || blogsData;
+    return list.slice(0, 3);
+  }, [blogsData]);
+
+  // Toppsカード取得（発行日が最新順）
+  const { data: cardsData, isLoading: cardsLoading } = useSWR('/api/topps-cards/', fetcher, { revalidateOnFocus: false });
+  const latestCards: ToppsCard[] = useMemo(() => {
+    if (!cardsData) return [];
+    const list: ToppsCard[] = cardsData.results || cardsData;
+    return list
+      .filter(c => c.release_date)
+      .sort((a, b) => new Date(b.release_date!).getTime() - new Date(a.release_date!).getTime())
+      .slice(0, 6);
+  }, [cardsData]);
+
+  const formatBlogDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
+  };
+
+  const formatCardDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}/${m}/${d}`;
+  };
+
   return (
     <MLBLayout activePath="/">
       {/* ヒーローセクション */}
@@ -62,7 +72,7 @@ export default function HomePage() {
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
           <Chip
             icon={<SportsBaseballIcon sx={{ color: "white !important" }} />}
-            label="MLB Blog"
+            label="Personal MLB Note"
             size="small"
             sx={{
               mb: 2,
@@ -73,134 +83,211 @@ export default function HomePage() {
             }}
           />
           <Typography variant="h1" sx={{ fontWeight: 800, mb: 3, fontSize: { xs: "2.5rem", md: "4rem" }, lineHeight: 1.2 }}>
-            メジャーリーグの<br />すべてがここに
+            MLBの気になるデータを<br />個人的にまとめたサイト
           </Typography>
           <Typography variant="h5" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: 700, lineHeight: 1.8 }}>
-            試合速報、選手分析、統計データ、移籍情報まで。<br />
-            メジャーリーグの魅力を余すことなくお届けします。
+            Topps NOWカードの発行情報やWBCデータなど、<br />
+            自分が見たかったMLBデータを集めています。
           </Typography>
         </Container>
       </Box>
 
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        {/* クイックリンク */}
-        <Box sx={{ mb: 8 }}>
-          <Grid container spacing={3}>
-            {quickLinks.map((link, index) => (
-              <Grid item xs={6} md={3} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    textAlign: "center",
-                    borderRadius: 3,
-                    border: "1px solid #e8f5e9",
-                    cursor: "pointer",
-                    transition: "all 0.3s",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 8px 24px rgba(46, 125, 50, 0.15)",
-                    },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 2,
-                      bgcolor: `${link.color}15`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      mx: "auto",
-                      mb: 2,
-                      color: link.color,
-                      "& svg": { fontSize: 28 },
-                    }}
-                  >
-                    {link.icon}
-                  </Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: "#1a472a" }}>
-                    {link.title}
-                  </Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
 
-        {/* 注目記事 */}
-        <Box>
-          <Box sx={{ mb: 4 }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 800,
-                mb: 1,
-                background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              注目の記事
-            </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>
-              Featured Stories
-            </Typography>
+        {/* 最新ブログセクション */}
+        {blogsLoading && (
+          <Box sx={{ mb: 8 }}>
+            <Skeleton variant="text" width={200} height={40} sx={{ mb: 2 }} />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+              {[1, 2, 3].map((i) => (
+                <Box key={i}>
+                  <Skeleton variant="rectangular" height={160} sx={{ borderRadius: 3 }} />
+                  <Skeleton variant="text" height={28} sx={{ mt: 2 }} />
+                  <Skeleton variant="text" width="60%" />
+                </Box>
+              ))}
+            </Box>
           </Box>
+        )}
+        {blogs.length > 0 && (
+          <Box sx={{ mb: 8 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    mb: 0.5,
+                    background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  最新ブログ
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Latest Blog Posts
+                </Typography>
+              </Box>
+              <Chip
+                icon={<ArticleIcon sx={{ fontSize: 16 }} />}
+                label="すべて見る"
+                onClick={() => router.push('/blog')}
+                sx={{ cursor: 'pointer', bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600 }}
+              />
+            </Box>
 
-          <Grid container spacing={3}>
-            {featuredStories.map((story, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <Paper
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, gap: 3 }}>
+              {blogs.map((blog) => (
+                <Card
+                  key={blog.id}
                   elevation={0}
                   sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
                     borderRadius: 3,
-                    overflow: "hidden",
-                    border: "1px solid #e8f5e9",
-                    cursor: "pointer",
-                    transition: "all 0.4s",
-                    "&:hover": {
-                      transform: "translateY(-8px)",
-                      boxShadow: "0 12px 40px rgba(46, 125, 50, 0.15)",
+                    border: '1px solid #e8f5e9',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: '0 8px 24px rgba(46, 125, 50, 0.12)',
+                    },
+                  }}
+                  onClick={() => router.push(`/blog/${blog.id}`)}
+                >
+                  {blog.image_url ? (
+                    <CardMedia
+                      component="img"
+                      height="160"
+                      image={blog.image_url}
+                      alt={blog.title}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 160,
+                        background: 'linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <ArticleIcon sx={{ fontSize: 48, color: 'rgba(255,255,255,0.3)' }} />
+                    </Box>
+                  )}
+                  <CardContent sx={{ flexGrow: 1, p: 3 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: '#1a472a', fontSize: '1rem' }}>
+                      {blog.title}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'text.secondary',
+                        mb: 2,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
+                      {blog.content}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {blog.author_name || '管理者'}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {formatBlogDate(blog.created_at)}
+                      </Typography>
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          </Box>
+        )}
+
+        {/* 最新Topps NOWカードセクション */}
+        {cardsLoading && (
+          <Box>
+            <Skeleton variant="text" width={200} height={40} sx={{ mb: 2 }} />
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} variant="rectangular" height={48} sx={{ borderRadius: 2, mb: 1 }} />
+            ))}
+          </Box>
+        )}
+        {latestCards.length > 0 && (
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Box>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 800,
+                    mb: 0.5,
+                    background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  最新 Topps NOW
+                </Typography>
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                  Latest Topps NOW Cards
+                </Typography>
+              </Box>
+              <Chip
+                icon={<StyleIcon sx={{ fontSize: 16 }} />}
+                label="すべて見る"
+                onClick={() => router.push('/topps-now')}
+                sx={{ cursor: 'pointer', bgcolor: '#e8f5e9', color: '#2e7d32', fontWeight: 600 }}
+              />
+            </Box>
+
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {latestCards.map((card) => (
+                <Box
+                  key={card.id}
+                  onClick={() => {
+                    if (card.product_url) {
+                      window.open(card.product_url, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    p: 2,
+                    borderRadius: 2,
+                    border: '1px solid #e8f5e9',
+                    cursor: card.product_url ? 'pointer' : 'default',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      bgcolor: '#f8fdf9',
+                      transform: 'translateX(4px)',
                     },
                   }}
                 >
-                  <Box
-                    sx={{
-                      height: 160,
-                      background: story.image,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <SportsBaseballIcon sx={{ fontSize: 60, color: "rgba(255,255,255,0.3)" }} />
-                  </Box>
-                  <Box sx={{ p: 3 }}>
-                    <Chip
-                      label={story.category}
-                      size="small"
-                      sx={{
-                        mb: 2,
-                        bgcolor: "#e8f5e9",
-                        color: "#2e7d32",
-                        fontWeight: 600,
-                        fontSize: "0.7rem",
-                      }}
-                    />
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: "#1a472a" }}>
-                      {story.title}
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="body2" sx={{ color: '#2e7d32', fontWeight: 700, minWidth: 50 }}>
+                      #{card.card_number}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      {story.date}
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: '#1a472a' }}>
+                      {card.player?.full_name || card.title}
                     </Typography>
                   </Box>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        </Box>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
+                    {formatCardDate(card.release_date!)}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
       </Container>
     </MLBLayout>
   );

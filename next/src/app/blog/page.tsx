@@ -1,69 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Box, Container, Typography, Card, CardContent, CardMedia, Grid, Chip, CircularProgress, Button } from "@mui/material";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 import MLBLayout from "@/components/MLBLayout";
 import ArticleIcon from "@mui/icons-material/Article";
 import AddIcon from "@mui/icons-material/Add";
-import type { Blog } from "@/lib/types";
+import type { Blog, User } from "@/lib/types";
+import { fetcher, authFetcher } from "@/lib/fetcher";
 
 export default function BlogPage() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSuperuser, setIsSuperuser] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
+  const { data: blogsData, isLoading: loading } = useSWR('/api/blogs/', fetcher, {
+    revalidateOnFocus: false,
+  });
+  const { data: user } = useSWR<User | null>('/api/auth/me/', authFetcher, {
+    revalidateOnFocus: false,
+  });
+
+  const blogs: Blog[] = useMemo(() => {
+    if (!blogsData) return [];
+    return blogsData.results || blogsData;
+  }, [blogsData]);
+
+  const isSuperuser = user?.is_superuser ?? false;
+
   useEffect(() => {
     setMounted(true);
-    fetchBlogs();
-    checkUserPermission();
-
-    // localStorageの変更を監視（ログイン/ログアウト時）
-    const handleStorageChange = () => {
-      checkUserPermission();
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-
-  const fetchBlogs = async () => {
-    try {
-      const response = await fetch('/api/blogs/');
-      if (response.ok) {
-        const data = await response.json();
-        // DRF pagination format
-        const blogList = data.results || data;
-        setBlogs(blogList);
-      }
-    } catch (error) {
-      console.error('Failed to fetch blogs:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkUserPermission = async () => {
-    try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-
-      const response = await fetch('/api/auth/me/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const user = await response.json();
-        setIsSuperuser(user.is_superuser || false);
-      }
-    } catch (error) {
-      console.error('Failed to check user permission:', error);
-    }
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -90,7 +57,7 @@ export default function BlogPage() {
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
           <Chip
             icon={<ArticleIcon sx={{ color: "white !important" }} />}
-            label="MLB Blog"
+            label="Blog"
             size="small"
             sx={{
               mb: 2,
@@ -107,7 +74,7 @@ export default function BlogPage() {
                   ブログ
                 </Typography>
                 <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: 600, lineHeight: 1.8 }}>
-                  MLBに関する最新情報、分析、コラムをお届けします
+                  MLBについて個人的に気になったことを書いています
                 </Typography>
               </Box>
               {mounted && (

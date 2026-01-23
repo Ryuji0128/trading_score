@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Box, Container, Typography, Tabs, Tab, Paper, Chip,
   CircularProgress, Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, Accordion, AccordionSummary, AccordionDetails,
   Dialog, DialogTitle, DialogContent, IconButton, Link
 } from "@mui/material";
+import useSWR from "swr";
 import CloseIcon from "@mui/icons-material/Close";
 import MLBLayout from "@/components/MLBLayout";
 import PublicIcon from "@mui/icons-material/Public";
@@ -14,52 +15,38 @@ import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SportsCricketIcon from "@mui/icons-material/SportsCricket";
 import type { WBCTournament, WBCGame, WBCTournamentDetail, WBCRosterEntry, PlayerCard } from "@/lib/types";
+import { fetcher } from "@/lib/fetcher";
 
 export default function WBCPage() {
-  const [tournaments, setTournaments] = useState<WBCTournament[]>([]);
   const [selectedTab, setSelectedTab] = useState(0);
   const [subTab, setSubTab] = useState(0); // 0: 試合結果, 1: 出場選手
-  const [tournamentDetail, setTournamentDetail] = useState<WBCTournamentDetail | null>(null);
-  const [roster, setRoster] = useState<WBCRosterEntry[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [detailLoading, setDetailLoading] = useState(false);
   const [cardDialogOpen, setCardDialogOpen] = useState(false);
   const [cardDialogPlayer, setCardDialogPlayer] = useState<string>("");
   const [playerCards, setPlayerCards] = useState<PlayerCard[]>([]);
   const [cardsLoading, setCardsLoading] = useState(false);
 
   // トーナメント一覧取得
-  useEffect(() => {
-    fetch(`/api/wbc-tournaments/`)
-      .then(res => res.json())
-      .then(data => {
-        setTournaments(data);
-        setLoading(false);
-        if (data.length > 0) {
-          loadTournamentDetail(data[0].id);
-          loadRoster(data[0].id);
-        }
-      })
-      .catch(() => setLoading(false));
-  }, []);
+  const { data: tournaments = [], isLoading: loading } = useSWR<WBCTournament[]>(
+    '/api/wbc-tournaments/',
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
-  const loadTournamentDetail = (id: number) => {
-    setDetailLoading(true);
-    fetch(`/api/wbc-tournaments/${id}/`)
-      .then(res => res.json())
-      .then(data => {
-        setTournamentDetail(data);
-        setDetailLoading(false);
-      })
-      .catch(() => setDetailLoading(false));
-  };
+  const selectedTournamentId = tournaments[selectedTab]?.id;
 
-  const loadRoster = (id: number) => {
-    fetch(`/api/wbc-tournaments/${id}/roster/`)
-      .then(res => res.json())
-      .then(data => setRoster(data))
-      .catch(() => {});
-  };
+  // 選択されたトーナメントの詳細
+  const { data: tournamentDetail, isLoading: detailLoading } = useSWR<WBCTournamentDetail>(
+    selectedTournamentId ? `/api/wbc-tournaments/${selectedTournamentId}/` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  // 選択されたトーナメントのロスター
+  const { data: roster = [] } = useSWR<WBCRosterEntry[]>(
+    selectedTournamentId ? `/api/wbc-tournaments/${selectedTournamentId}/roster/` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
   const handlePlayerClick = (playerName: string) => {
     setCardDialogPlayer(playerName);
@@ -80,11 +67,6 @@ export default function WBCPage() {
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setSelectedTab(newValue);
     setSubTab(0);
-    const tournament = tournaments[newValue];
-    if (tournament) {
-      loadTournamentDetail(tournament.id);
-      loadRoster(tournament.id);
-    }
   };
 
   const selectedTournament = tournaments[selectedTab] || null;

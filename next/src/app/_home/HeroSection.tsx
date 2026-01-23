@@ -79,7 +79,7 @@ const HeroSection = () => {
                 お問い合わせ
               </Button>
             </Link>
-            <Link href="/discription" passHref>
+            <Link href="/description" passHref>
               <Button
                 variant="outlined"
                 size="large"

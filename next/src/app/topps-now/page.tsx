@@ -1,22 +1,28 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Box, Container, Typography, Paper, CircularProgress, Switch, FormControlLabel, Snackbar, Alert } from "@mui/material";
-import { DataGrid, GridToolbar, useGridApiRef } from "@mui/x-data-grid";
+import { useState, useMemo, useCallback } from "react";
+import { Box, Container, Snackbar, Alert } from "@mui/material";
+import useSWR from "swr";
+import dynamic from "next/dynamic";
 import MLBLayout from "@/components/MLBLayout";
-import EditIcon from "@mui/icons-material/Edit";
 import type { Team, ToppsCard, User } from "@/lib/types";
+import { fetcher, authFetcher } from "@/lib/fetcher";
 import { getColumns } from "./columns";
 import { useToppsRankings } from "./hooks/useToppsRankings";
 import ToppsHeroSection from "./components/ToppsHeroSection";
 import ToppsStatCards from "./components/ToppsStatCards";
 import ToppsRankings from "./components/ToppsRankings";
 
+const ToppsDataGrid = dynamic(() => import("./components/ToppsDataGrid"), {
+  ssr: false,
+  loading: () => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+      <Box sx={{ width: 40, height: 40, border: '4px solid #e8f5e9', borderTop: '4px solid #2e7d32', borderRadius: '50%', animation: 'spin 1s linear infinite', '@keyframes spin': { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } } }} />
+    </Box>
+  ),
+});
+
 export default function ToppsNowPage() {
-  const [toppsCards, setToppsCards] = useState<ToppsCard[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<User | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [filteredRowCount, setFilteredRowCount] = useState<number | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
@@ -25,66 +31,26 @@ export default function ToppsNowPage() {
     severity: 'success'
   });
   const [rankingTab, setRankingTab] = useState(0);
-  const apiRef = useGridApiRef();
 
-  // ユーザー情報を取得
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
+  const { data: user } = useSWR<User | null>('/api/auth/me/', authFetcher, {
+    revalidateOnFocus: false,
+  });
+  const { data: cardsData, isLoading: loading, mutate: mutateCards } = useSWR('/api/topps-cards/', fetcher, {
+    revalidateOnFocus: false,
+  });
+  const { data: teamsData } = useSWR('/api/teams/', fetcher, {
+    revalidateOnFocus: false,
+  });
 
-      try {
-        const response = await fetch('/api/auth/me/', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUser(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user:', error);
-      }
-    };
+  const toppsCards: ToppsCard[] = useMemo(() => {
+    if (!cardsData) return [];
+    return cardsData.results || cardsData;
+  }, [cardsData]);
 
-    fetchUser();
-  }, []);
-
-  useEffect(() => {
-    const fetchToppsCards = async () => {
-      try {
-        const response = await fetch('/api/topps-cards/');
-        if (response.ok) {
-          const data = await response.json();
-          setToppsCards(data.results || data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch Topps cards:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchToppsCards();
-  }, []);
-
-  // チーム一覧を取得
-  useEffect(() => {
-    const fetchTeams = async () => {
-      try {
-        const response = await fetch('/api/teams/');
-        if (response.ok) {
-          const data = await response.json();
-          setTeams(data.results || data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch teams:', error);
-      }
-    };
-
-    fetchTeams();
-  }, []);
+  const teams: Team[] = useMemo(() => {
+    if (!teamsData) return [];
+    return teamsData.results || teamsData;
+  }, [teamsData]);
 
   const isSuperuser = user?.is_superuser ?? false;
 
@@ -138,13 +104,17 @@ export default function ToppsNowPage() {
         team: updatedCard.team,
       };
 
-      setToppsCards(prev => prev.map(card => card.id === newRow.id ? mergedCard : card));
+      mutateCards((current: ToppsCard[] | { results: ToppsCard[] }) => {
+        const list = Array.isArray(current) ? current : current?.results || [];
+        const updated = list.map((card: ToppsCard) => card.id === newRow.id ? mergedCard : card);
+        return Array.isArray(current) ? updated : { ...current, results: updated };
+      }, false);
       return mergedCard;
     } catch (error) {
       setSnackbar({ open: true, message: error instanceof Error ? error.message : '更新に失敗しました', severity: 'error' });
       throw error;
     }
-  }, []);
+  }, [mutateCards]);
 
   const handleProcessRowUpdateError = useCallback((error: Error) => {
     setSnackbar({ open: true, message: error.message, severity: 'error' });
@@ -185,154 +155,20 @@ export default function ToppsNowPage() {
           </Box>
         )}
 
-        {/* データテーブル */}
-        <Box>
-          <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <Box>
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 800,
-                  mb: 1,
-                  background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                カード一覧
-              </Typography>
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                {filteredRowCount !== null && filteredRowCount !== toppsCards.length
-                  ? `${filteredRowCount}件 / 全${toppsCards.length}件のカードデータ`
-                  : `全${toppsCards.length}件のカードデータ`}
-              </Typography>
-            </Box>
-            {isSuperuser && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={editMode}
-                    onChange={(e) => setEditMode(e.target.checked)}
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: '#2e7d32',
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                        backgroundColor: '#2e7d32',
-                      },
-                    }}
-                  />
-                }
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <EditIcon fontSize="small" />
-                    編集モード
-                  </Box>
-                }
-                sx={{
-                  bgcolor: editMode ? 'rgba(46, 125, 50, 0.1)' : 'transparent',
-                  px: 2,
-                  py: 0.5,
-                  borderRadius: 2,
-                  border: editMode ? '1px solid #2e7d32' : '1px solid transparent',
-                }}
-              />
-            )}
-          </Box>
-
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-              <CircularProgress sx={{ color: '#2e7d32' }} />
-            </Box>
-          ) : toppsCards.length > 0 ? (
-            <Paper
-              elevation={0}
-              sx={{
-                height: 700,
-                width: '100%',
-                borderRadius: 3,
-                border: '1px solid #e8f5e9',
-                '& .data-grid-header': {
-                  backgroundColor: '#f1f8f4',
-                  color: '#1a472a',
-                  fontWeight: 700,
-                },
-                '& .MuiDataGrid-root': {
-                  border: 'none',
-                },
-              }}
-            >
-              <DataGrid
-                apiRef={apiRef}
-                rows={toppsCards}
-                columns={columns}
-                editMode="cell"
-                processRowUpdate={handleProcessRowUpdate}
-                onProcessRowUpdateError={handleProcessRowUpdateError}
-                onFilterModelChange={() => {
-                  setTimeout(() => {
-                    const filteredRows = apiRef.current?.getRowModels?.();
-                    if (filteredRows) {
-                      let count = 0;
-                      const lookup = apiRef.current?.state?.filter?.filteredRowsLookup;
-                      if (lookup) {
-                        count = Object.values(lookup).filter(v => v).length;
-                      } else {
-                        count = filteredRows.size;
-                      }
-                      setFilteredRowCount(count);
-                    }
-                  }, 50);
-                }}
-                initialState={{
-                  pagination: {
-                    paginationModel: { page: 0, pageSize: 25 },
-                  },
-                  sorting: {
-                    sortModel: [{ field: 'card_number', sort: 'asc' }],
-                  },
-                }}
-                pageSizeOptions={[10, 25, 50, 100]}
-                slots={{ toolbar: GridToolbar }}
-                slotProps={{
-                  toolbar: {
-                    showQuickFilter: true,
-                    quickFilterProps: {
-                      debounceMs: 500,
-                    },
-                  },
-                }}
-                disableRowSelectionOnClick
-                disableColumnFilter={false}
-                disableColumnSelector={false}
-                disableDensitySelector={false}
-                sx={{
-                  '& .MuiDataGrid-cell:focus': {
-                    outline: 'none',
-                  },
-                  '& .MuiDataGrid-row:hover': {
-                    backgroundColor: '#f8fdf9',
-                  },
-                  '& .MuiDataGrid-cell--editing': {
-                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
-                  },
-                }}
-              />
-            </Paper>
-          ) : (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="h6" sx={{ color: 'text.secondary' }}>
-                カードデータがありません
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-                スクレイピングコマンドを実行してカードデータを取得してください
-              </Typography>
-            </Box>
-          )}
-        </Box>
+        <ToppsDataGrid
+          toppsCards={toppsCards}
+          columns={columns}
+          loading={loading}
+          editMode={editMode}
+          setEditMode={setEditMode}
+          isSuperuser={isSuperuser}
+          onProcessRowUpdate={handleProcessRowUpdate}
+          onProcessRowUpdateError={handleProcessRowUpdateError}
+          onFilteredRowCountChange={setFilteredRowCount}
+          filteredRowCount={filteredRowCount}
+        />
       </Container>
 
-      {/* 更新通知 */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}

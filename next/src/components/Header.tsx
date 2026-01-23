@@ -46,7 +46,7 @@ export default function Header() {
 
   const contentsList = [
     { title: "サービス", href: "/consultation" },
-    { title: "会社概要", href: "/discription" },
+    { title: "このサイトについて", href: "/description" },
     { title: "オンライン決済", href: "/payment" },
     { title: "お問い合わせ", href: "/contact" },
   ];
@@ -106,7 +106,7 @@ export default function Header() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  MLB Fanatic
+                  MLB Note
                 </Typography>
               </Box>
             </Link>

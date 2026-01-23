@@ -8,9 +8,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MLB Fanatic - メジャーリーグを語る",
+  title: "MLB Note - 個人的MLBデータまとめ",
   description:
-    "メジャーリーグの試合速報、選手分析、統計データ、移籍情報まで。メジャーリーグの魅力を余すことなくお届けするブログです。",
+    "Topps NOWカードの発行情報やWBCデータなど、個人的に気になるMLBのデータをまとめたサイトです。",
 };
 
 export default function RootLayout({
