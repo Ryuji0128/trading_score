@@ -5,6 +5,7 @@ import { Box, Container, Typography, TextField, Button, Paper, Alert } from "@mu
 import { useRouter } from "next/navigation";
 import MLBLayout from "@/components/MLBLayout";
 import LoginIcon from "@mui/icons-material/Login";
+import { saveLoginData } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,13 +33,7 @@ export default function LoginPage() {
 
       if (response.ok) {
         const data = await response.json();
-
-        // トークンをlocalStorageに保存
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-        localStorage.setItem('user', JSON.stringify(data.user));
-
-        // ブログページにリダイレクト
+        saveLoginData(data);
         router.push('/blog');
       } else {
         const data = await response.json();

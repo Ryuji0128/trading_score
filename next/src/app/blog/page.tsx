@@ -9,6 +9,7 @@ import ArticleIcon from "@mui/icons-material/Article";
 import AddIcon from "@mui/icons-material/Add";
 import type { Blog, User } from "@/lib/types";
 import { fetcher, authFetcher } from "@/lib/fetcher";
+import { formatDateJP } from "@/lib/utils";
 
 export default function BlogPage() {
   const [mounted, setMounted] = useState(false);
@@ -32,14 +33,6 @@ export default function BlogPage() {
     setMounted(true);
   }, []);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
 
   return (
     <MLBLayout activePath="/blog">
@@ -155,7 +148,7 @@ export default function BlogPage() {
                         {blog.author_name || '管理者'}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        {formatDate(blog.created_at)}
+                        {formatDateJP(blog.created_at)}
                       </Typography>
                     </Box>
                   </CardContent>

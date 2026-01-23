@@ -8,6 +8,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import type { Blog } from "@/lib/types";
+import { getAccessToken, getAuthHeaders } from "@/lib/auth";
+import { formatDateJP } from "@/lib/utils";
 
 export default function BlogDetailPage() {
   const [blog, setBlog] = useState<Blog | null>(null);
@@ -42,15 +44,8 @@ export default function BlogDetailPage() {
 
   const checkUserPermission = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
-
-      const response = await fetch('/api/auth/me/', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
+      if (!getAccessToken()) return;
+      const response = await fetch('/api/auth/me/', { headers: getAuthHeaders() });
       if (response.ok) {
         const user = await response.json();
         setIsSuperuser(user.is_superuser || false);
@@ -64,12 +59,9 @@ export default function BlogDetailPage() {
     if (!confirm('このブログを削除しますか?')) return;
 
     try {
-      const token = localStorage.getItem('access_token');
       const response = await fetch(`/api/blogs/${id}/`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       });
 
       if (response.ok) {
@@ -83,14 +75,6 @@ export default function BlogDetailPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-  };
 
   if (loading) {
     return (
@@ -155,7 +139,7 @@ export default function BlogDetailPage() {
               sx={{ bgcolor: '#e8f5e9', color: '#2e7d32' }}
             />
             <Chip
-              label={formatDate(blog.created_at)}
+              label={formatDateJP(blog.created_at)}
               size="small"
               variant="outlined"
             />

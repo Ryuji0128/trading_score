@@ -10,6 +10,8 @@ import StyleIcon from "@mui/icons-material/Style";
 import ArticleIcon from "@mui/icons-material/Article";
 import type { Blog, ToppsCard } from "@/lib/types";
 import { fetcher } from "@/lib/fetcher";
+import { formatDateJP, formatDateSlash } from "@/lib/utils";
+import { DISPLAY_LIMITS } from "@/lib/constants";
 
 export default function HomePage() {
   const router = useRouter();
@@ -19,7 +21,7 @@ export default function HomePage() {
   const blogs: Blog[] = useMemo(() => {
     if (!blogsData) return [];
     const list = blogsData.results || blogsData;
-    return list.slice(0, 3);
+    return list.slice(0, DISPLAY_LIMITS.HOME_BLOGS);
   }, [blogsData]);
 
   // Toppsカード取得（発行日が最新順）
@@ -30,21 +32,9 @@ export default function HomePage() {
     return list
       .filter(c => c.release_date)
       .sort((a, b) => new Date(b.release_date!).getTime() - new Date(a.release_date!).getTime())
-      .slice(0, 6);
+      .slice(0, DISPLAY_LIMITS.HOME_TOPPS_CARDS);
   }, [cardsData]);
 
-  const formatBlogDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
-
-  const formatCardDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}/${m}/${d}`;
-  };
 
   return (
     <MLBLayout activePath="/">
@@ -201,7 +191,7 @@ export default function HomePage() {
                         {blog.author_name || '管理者'}
                       </Typography>
                       <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {formatBlogDate(blog.created_at)}
+                        {formatDateJP(blog.created_at)}
                       </Typography>
                     </Box>
                   </CardContent>
@@ -281,7 +271,7 @@ export default function HomePage() {
                     </Typography>
                   </Box>
                   <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                    {formatCardDate(card.release_date!)}
+                    {formatDateSlash(card.release_date!)}
                   </Typography>
                 </Box>
               ))}

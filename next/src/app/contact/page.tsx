@@ -2,11 +2,7 @@ import ContactMailIcon from "@mui/icons-material/ContactMail";
 import { Box, Chip, Container, Typography } from "@mui/material";
 import { ReCaptchaProvider } from "next-recaptcha-v3";
 import ContactForm from "./ContactForm";
-// import InquiryManagement from "./InquiryManagement"; // 一旦コメントアウト
-
 export default async function ContactPage() {
-  // 認証機能は後から実装
-  // const session = await auth();
 
   return (
     <Box>

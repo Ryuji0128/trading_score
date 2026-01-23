@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
   Box,
   Container,
@@ -20,156 +20,114 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  SelectChangeEvent,
 } from "@mui/material";
+import useSWR from "swr";
 import MLBLayout from "@/components/MLBLayout";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import type { TeamStanding, DivisionStandings } from "@/lib/types";
+import type { DivisionStandings } from "@/lib/types";
+import { fetcher } from "@/lib/fetcher";
+import { MLB_API_BASE, DIVISION_IDS } from "@/lib/constants";
 
-// Division ID to name mapping
-const DIVISION_NAMES: { [key: number]: string } = {
-  200: "American League West",
-  201: "American League East",
-  202: "American League Central",
-  203: "National League West",
-  204: "National League East",
-  205: "National League Central",
+const DIVISION_NAMES: Record<number, string> = {
+  [DIVISION_IDS.AL_WEST]: "American League West",
+  [DIVISION_IDS.AL_EAST]: "American League East",
+  [DIVISION_IDS.AL_CENTRAL]: "American League Central",
+  [DIVISION_IDS.NL_WEST]: "National League West",
+  [DIVISION_IDS.NL_EAST]: "National League East",
+  [DIVISION_IDS.NL_CENTRAL]: "National League Central",
 };
 
+const SEASON_OPTIONS = [2023, 2024, 2025];
+
 export default function StatsPage() {
-  const [standings, setStandings] = useState<DivisionStandings[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedLeague, setSelectedLeague] = useState<"AL" | "NL">("AL");
   const [selectedSeason, setSelectedSeason] = useState<number>(2024);
 
-  useEffect(() => {
-    fetchStandings();
-  }, [selectedSeason]);
+  const { data, isLoading } = useSWR(
+    `${MLB_API_BASE}/standings?leagueId=103,104&season=${selectedSeason}&standingsTypes=regularSeason`,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
-  const fetchStandings = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `https://statsapi.mlb.com/api/v1/standings?leagueId=103,104&season=${selectedSeason}&standingsTypes=regularSeason`
-      );
+  const standings: DivisionStandings[] = useMemo(() => {
+    if (!data?.records) return [];
+    return data.records.map((record: DivisionStandings) => ({
+      ...record,
+      division: {
+        ...record.division,
+        name: DIVISION_NAMES[record.division.id] || `Division ${record.division.id}`,
+      },
+    }));
+  }, [data]);
 
-      if (response.ok) {
-        const data = await response.json();
-        // Add division names to the records
-        const recordsWithNames = data.records.map((record: any) => ({
-          ...record,
-          division: {
-            ...record.division,
-            name: DIVISION_NAMES[record.division.id] || `Division ${record.division.id}`,
-          },
-        }));
-        setStandings(recordsWithNames);
-      } else {
-        console.error("API response not OK:", response.status, response.statusText);
-      }
-    } catch (error) {
-      console.error("Failed to fetch standings:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLeagueChange = (_event: React.SyntheticEvent, newValue: "AL" | "NL") => {
-    setSelectedLeague(newValue);
-  };
-
-  const handleSeasonChange = (event: any) => {
-    setSelectedSeason(event.target.value);
-  };
-
-  const filteredStandings = standings.filter((division) => {
-    if (!division.division || !division.division.name) return false;
-    return division.division.name.includes(selectedLeague === "AL" ? "American" : "National");
-  });
+  const filteredStandings = useMemo(() => {
+    return standings.filter((division) =>
+      division.division.name.includes(selectedLeague === "AL" ? "American" : "National")
+    );
+  }, [standings, selectedLeague]);
 
   return (
     <MLBLayout activePath="/stats">
-      {/* ヒーローセクション */}
       <Box
         sx={{
           background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
           color: "white",
           py: { xs: 6, md: 10 },
           px: 3,
-          position: "relative",
-          overflow: "hidden",
         }}
       >
-        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+        <Container maxWidth="lg">
           <Chip
             icon={<TrendingUpIcon sx={{ color: "white !important" }} />}
             label="MLB Statistics"
             size="small"
-            sx={{
-              mb: 2,
-              bgcolor: "rgba(255,255,255,0.2)",
-              color: "white",
-              fontWeight: 600,
-              borderRadius: 2,
-            }}
+            sx={{ mb: 2, bgcolor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 600, borderRadius: 2 }}
           />
           <Typography variant="h2" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: "2rem", md: "3.5rem" } }}>
             MLB順位表
           </Typography>
-          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: 600, lineHeight: 1.8 }}>
-            MLB公式APIから取得したレギュラーシーズンの順位情報
+          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
+            レギュラーシーズンの順位情報
           </Typography>
         </Container>
       </Box>
 
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        {loading ? (
+        {isLoading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
             <CircularProgress sx={{ color: "#2e7d32" }} />
           </Box>
         ) : (
           <>
-            {/* シーズン選択とリーグ切り替えタブ */}
+            {/* シーズン選択とリーグ切り替え */}
             <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2 }}>
               <FormControl sx={{ minWidth: 150 }}>
                 <InputLabel id="season-select-label">シーズン</InputLabel>
                 <Select
                   labelId="season-select-label"
-                  id="season-select"
                   value={selectedSeason}
                   label="シーズン"
-                  onChange={handleSeasonChange}
+                  onChange={(e: SelectChangeEvent<number>) => setSelectedSeason(e.target.value as number)}
                   sx={{
-                    "& .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "#2e7d32",
-                    },
-                    "&:hover .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "#1a472a",
-                    },
-                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                      borderColor: "#2e7d32",
-                    },
+                    "& .MuiOutlinedInput-notchedOutline": { borderColor: "#2e7d32" },
+                    "&:hover .MuiOutlinedInput-notchedOutline": { borderColor: "#1a472a" },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderColor: "#2e7d32" },
                   }}
                 >
-                  <MenuItem value={2023}>2023年</MenuItem>
-                  <MenuItem value={2024}>2024年</MenuItem>
-                  <MenuItem value={2025}>2025年</MenuItem>
+                  {SEASON_OPTIONS.map((year) => (
+                    <MenuItem key={year} value={year}>{year}年</MenuItem>
+                  ))}
                 </Select>
               </FormControl>
 
               <Tabs
                 value={selectedLeague}
-                onChange={handleLeagueChange}
+                onChange={(_e, v: "AL" | "NL") => setSelectedLeague(v)}
                 sx={{
-                  "& .MuiTab-root": {
-                    fontWeight: 600,
-                    fontSize: "1rem",
-                  },
-                  "& .Mui-selected": {
-                    color: "#2e7d32 !important",
-                  },
-                  "& .MuiTabs-indicator": {
-                    backgroundColor: "#2e7d32",
-                  },
+                  "& .MuiTab-root": { fontWeight: 600, fontSize: "1rem" },
+                  "& .Mui-selected": { color: "#2e7d32 !important" },
+                  "& .MuiTabs-indicator": { backgroundColor: "#2e7d32" },
                 }}
               >
                 <Tab label="アメリカンリーグ" value="AL" />
@@ -189,78 +147,49 @@ export default function StatsPage() {
               </Box>
             ) : (
               filteredStandings.map((division) => (
-              <Box key={division.division.id} sx={{ mb: 6 }}>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 700,
-                    mb: 3,
-                    color: "#1a472a",
-                  }}
-                >
-                  {division.division.name}
-                </Typography>
-
-                <TableContainer
-                  component={Paper}
-                  elevation={0}
-                  sx={{
-                    borderRadius: 3,
-                    border: "1px solid #e8f5e9",
-                  }}
-                >
-                  <Table>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "#f1f8f4" }}>
-                        <TableCell sx={{ fontWeight: 700, color: "#1a472a" }}>順位</TableCell>
-                        <TableCell sx={{ fontWeight: 700, color: "#1a472a" }}>チーム</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700, color: "#1a472a" }}>
-                          勝
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700, color: "#1a472a" }}>
-                          敗
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700, color: "#1a472a" }}>
-                          勝率
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700, color: "#1a472a" }}>
-                          GB
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700, color: "#1a472a" }}>
-                          連勝/連敗
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700, color: "#1a472a" }}>
-                          得点
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: 700, color: "#1a472a" }}>
-                          失点
-                        </TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {division.teamRecords.map((team) => (
-                        <TableRow
-                          key={team.team.id}
-                          sx={{
-                            "&:hover": { bgcolor: "#f8fdf9" },
-                            bgcolor: team.divisionRank === "1" ? "#e8f5e9" : "white",
-                          }}
-                        >
-                          <TableCell sx={{ fontWeight: 600 }}>{team.divisionRank}</TableCell>
-                          <TableCell sx={{ fontWeight: 600 }}>{team.team.name}</TableCell>
-                          <TableCell align="center">{team.leagueRecord.wins}</TableCell>
-                          <TableCell align="center">{team.leagueRecord.losses}</TableCell>
-                          <TableCell align="center">{team.leagueRecord.pct}</TableCell>
-                          <TableCell align="center">{team.gamesBack === "0.0" ? "-" : team.gamesBack}</TableCell>
-                          <TableCell align="center">{team.streak.streakCode}</TableCell>
-                          <TableCell align="center">{team.runsScored}</TableCell>
-                          <TableCell align="center">{team.runsAllowed}</TableCell>
+                <Box key={division.division.id} sx={{ mb: 6 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: "#1a472a" }}>
+                    {division.division.name}
+                  </Typography>
+                  <TableContainer component={Paper} elevation={0} sx={{ borderRadius: 3, border: "1px solid #e8f5e9" }}>
+                    <Table>
+                      <TableHead>
+                        <TableRow sx={{ bgcolor: "#f1f8f4" }}>
+                          {["順位", "チーム", "勝", "敗", "勝率", "GB", "連勝/連敗", "得点", "失点"].map((label) => (
+                            <TableCell
+                              key={label}
+                              align={["順位", "チーム"].includes(label) ? "left" : "center"}
+                              sx={{ fontWeight: 700, color: "#1a472a" }}
+                            >
+                              {label}
+                            </TableCell>
+                          ))}
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Box>
+                      </TableHead>
+                      <TableBody>
+                        {division.teamRecords.map((team) => (
+                          <TableRow
+                            key={team.team.id}
+                            sx={{
+                              "&:hover": { bgcolor: "#f8fdf9" },
+                              bgcolor: team.divisionRank === "1" ? "#e8f5e9" : "white",
+                            }}
+                          >
+                            <TableCell sx={{ fontWeight: 600 }}>{team.divisionRank}</TableCell>
+                            <TableCell sx={{ fontWeight: 600 }}>{team.team.name}</TableCell>
+                            <TableCell align="center">{team.leagueRecord.wins}</TableCell>
+                            <TableCell align="center">{team.leagueRecord.losses}</TableCell>
+                            <TableCell align="center">{team.leagueRecord.pct}</TableCell>
+                            <TableCell align="center">{team.gamesBack === "0.0" ? "-" : team.gamesBack}</TableCell>
+                            <TableCell align="center">{team.streak.streakCode}</TableCell>
+                            <TableCell align="center">{team.runsScored}</TableCell>
+                            <TableCell align="center">{team.runsAllowed}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
               ))
             )}
           </>

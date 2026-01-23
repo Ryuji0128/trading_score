@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import MLBLayout from "@/components/MLBLayout";
 import type { Team, ToppsCard, User } from "@/lib/types";
 import { fetcher, authFetcher } from "@/lib/fetcher";
+import { getAccessToken } from "@/lib/auth";
 import { getColumns } from "./columns";
 import { useToppsRankings } from "./hooks/useToppsRankings";
 import ToppsHeroSection from "./components/ToppsHeroSection";
@@ -56,7 +57,7 @@ export default function ToppsNowPage() {
 
   // カード更新処理
   const handleProcessRowUpdate = useCallback(async (newRow: ToppsCard, oldRow: ToppsCard) => {
-    const token = localStorage.getItem('access_token');
+    const token = getAccessToken();
     if (!token) {
       throw new Error('認証が必要です');
     }

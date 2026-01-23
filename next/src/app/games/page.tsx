@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import {
   Box,
   Container,
@@ -11,99 +11,72 @@ import {
   Card,
   CardContent,
 } from "@mui/material";
+import useSWR from "swr";
 import MLBLayout from "@/components/MLBLayout";
 import SportsIcon from "@mui/icons-material/Sports";
 import type { Game } from "@/lib/types";
+import { fetcher } from "@/lib/fetcher";
+import { formatDateShort } from "@/lib/utils";
+import { MLB_API_BASE, DISPLAY_LIMITS } from "@/lib/constants";
+
+const STATUS_MAP: Record<string, string> = {
+  Final: "試合終了",
+  "In Progress": "試合中",
+  Scheduled: "予定",
+  Postponed: "延期",
+};
 
 export default function GamesPage() {
-  const [recentGames, setRecentGames] = useState<Game[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchGames();
+  const swrKey = useMemo(() => {
+    const today = new Date();
+    const endDate = today.toISOString().split("T")[0];
+    const start = new Date();
+    start.setDate(start.getDate() - DISPLAY_LIMITS.GAMES_DAYS_RANGE);
+    const startDate = start.toISOString().split("T")[0];
+    return `${MLB_API_BASE}/schedule?sportId=1&startDate=${startDate}&endDate=${endDate}`;
   }, []);
 
-  const fetchGames = async () => {
-    setLoading(true);
-    try {
-      // 最近の試合結果を取得
-      const today = new Date();
-      const endDate = today.toISOString().split('T')[0];
-      const startDate = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
+  const { data, isLoading } = useSWR(swrKey, fetcher, { revalidateOnFocus: false });
 
-      const gamesResponse = await fetch(
-        `https://statsapi.mlb.com/api/v1/schedule?sportId=1&startDate=${startDate}&endDate=${endDate}`
-      );
+  const recentGames: Game[] = useMemo(() => {
+    if (!data) return [];
+    const allGames = data.dates?.flatMap((date: { games: Game[] }) => date.games) || [];
+    return allGames.slice(0, 20);
+  }, [data]);
 
-      if (gamesResponse.ok) {
-        const gamesData = await gamesResponse.json();
-        const allGames = gamesData.dates?.flatMap((date: any) => date.games) || [];
-        setRecentGames(allGames.slice(0, 20));
-      }
-    } catch (error) {
-      console.error('Failed to fetch games:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
+  const formatGameDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP', {
-      month: 'numeric',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatGameStatus = (status: string) => {
-    const statusMap: { [key: string]: string } = {
-      'Final': '試合終了',
-      'In Progress': '試合中',
-      'Scheduled': '予定',
-      'Postponed': '延期',
-    };
-    return statusMap[status] || status;
+    return `${formatDateShort(dateString)} ${date.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}`;
   };
 
   return (
     <MLBLayout activePath="/games">
-      {/* ヒーローセクション */}
       <Box
         sx={{
           background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
           color: "white",
           py: { xs: 6, md: 10 },
           px: 3,
-          position: "relative",
-          overflow: "hidden",
         }}
       >
-        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+        <Container maxWidth="lg">
           <Chip
             icon={<SportsIcon sx={{ color: "white !important" }} />}
             label="MLB Games"
             size="small"
-            sx={{
-              mb: 2,
-              bgcolor: "rgba(255,255,255,0.2)",
-              color: "white",
-              fontWeight: 600,
-              borderRadius: 2,
-            }}
+            sx={{ mb: 2, bgcolor: "rgba(255,255,255,0.2)", color: "white", fontWeight: 600, borderRadius: 2 }}
           />
           <Typography variant="h2" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: "2rem", md: "3.5rem" } }}>
             最近の試合結果
           </Typography>
-          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: 600, lineHeight: 1.8 }}>
-            直近7日間の試合スコア
+          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400 }}>
+            直近{DISPLAY_LIMITS.GAMES_DAYS_RANGE}日間の試合スコア
           </Typography>
         </Container>
       </Box>
 
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        {loading ? (
+        {isLoading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
             <CircularProgress sx={{ color: "#2e7d32" }} />
           </Box>
@@ -123,73 +96,48 @@ export default function GamesPage() {
                 <Card
                   sx={{
                     transition: "all 0.3s",
-                    "&:hover": {
-                      transform: "translateY(-4px)",
-                      boxShadow: "0 8px 16px rgba(0,0,0,0.1)",
-                    },
+                    "&:hover": { transform: "translateY(-4px)", boxShadow: "0 8px 16px rgba(0,0,0,0.1)" },
                   }}
                 >
                   <CardContent>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
                       <Chip
-                        label={formatGameStatus(game.status.detailedState)}
+                        label={STATUS_MAP[game.status.detailedState] || game.status.detailedState}
                         size="small"
                         sx={{
-                          bgcolor: game.status.detailedState === 'Final' ? '#e8f5e9' : '#fff3e0',
-                          color: game.status.detailedState === 'Final' ? '#2e7d32' : '#f57c00',
+                          bgcolor: game.status.detailedState === "Final" ? "#e8f5e9" : "#fff3e0",
+                          color: game.status.detailedState === "Final" ? "#2e7d32" : "#f57c00",
                           fontWeight: 600,
                         }}
                       />
                       <Typography variant="caption" color="text.secondary">
-                        {formatDate(game.gameDate)}
+                        {formatGameDateTime(game.gameDate)}
                       </Typography>
                     </Box>
 
+                    {/* Away Team */}
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            fontWeight: game.teams.away.isWinner ? 700 : 400,
-                            color: game.teams.away.isWinner ? "#2e7d32" : "text.primary",
-                          }}
-                        >
-                          {game.teams.away.team.name}
-                        </Typography>
-                      </Box>
                       <Typography
-                        variant="h5"
-                        sx={{
-                          fontWeight: 700,
-                          mx: 2,
-                          color: game.teams.away.isWinner ? "#2e7d32" : "text.secondary",
-                        }}
+                        variant="body1"
+                        sx={{ flex: 1, fontWeight: game.teams.away.isWinner ? 700 : 400, color: game.teams.away.isWinner ? "#2e7d32" : "text.primary" }}
                       >
-                        {game.teams.away.score ?? '-'}
+                        {game.teams.away.team.name}
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, mx: 2, color: game.teams.away.isWinner ? "#2e7d32" : "text.secondary" }}>
+                        {game.teams.away.score ?? "-"}
                       </Typography>
                     </Box>
 
+                    {/* Home Team */}
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1 }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            fontWeight: game.teams.home.isWinner ? 700 : 400,
-                            color: game.teams.home.isWinner ? "#2e7d32" : "text.primary",
-                          }}
-                        >
-                          {game.teams.home.team.name}
-                        </Typography>
-                      </Box>
                       <Typography
-                        variant="h5"
-                        sx={{
-                          fontWeight: 700,
-                          mx: 2,
-                          color: game.teams.home.isWinner ? "#2e7d32" : "text.secondary",
-                        }}
+                        variant="body1"
+                        sx={{ flex: 1, fontWeight: game.teams.home.isWinner ? 700 : 400, color: game.teams.home.isWinner ? "#2e7d32" : "text.primary" }}
                       >
-                        {game.teams.home.score ?? '-'}
+                        {game.teams.home.team.name}
+                      </Typography>
+                      <Typography variant="h5" sx={{ fontWeight: 700, mx: 2, color: game.teams.home.isWinner ? "#2e7d32" : "text.secondary" }}>
+                        {game.teams.home.score ?? "-"}
                       </Typography>
                     </Box>
                   </CardContent>
