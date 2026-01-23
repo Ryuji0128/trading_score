@@ -1,11 +1,20 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import { Box, Container, Typography, Chip, Paper, CircularProgress, Link, Switch, FormControlLabel, Snackbar, Alert } from "@mui/material";
-import { DataGrid, GridColDef, GridToolbar, GridRowModesModel, GridRowModes, GridEventListener, GridRowEditStopReasons, GridRowId } from "@mui/x-data-grid";
+import { useState, useEffect, useMemo, useCallback, SyntheticEvent, MouseEvent } from "react";
+import { Box, Container, Typography, Chip, Paper, CircularProgress, Link, Switch, FormControlLabel, Snackbar, Alert, Tabs, Tab } from "@mui/material";
+import { DataGrid, GridColDef, GridToolbar, useGridApiRef } from "@mui/x-data-grid";
 import MLBLayout from "@/components/MLBLayout";
 import StyleIcon from "@mui/icons-material/Style";
 import EditIcon from "@mui/icons-material/Edit";
+
+interface Team {
+  id: number;
+  full_name: string;
+  abbreviation: string;
+  nickname: string;
+  primary_color: string;
+  mlb_team_id: number | null;
+}
 
 interface ToppsCard {
   id: number;
@@ -14,14 +23,11 @@ interface ToppsCard {
     id: number;
     full_name: string;
     mlb_player_id: number | null;
+    nationality: string | null;
+    wbc_years: string;
+    wbc_country: string;
   } | null;
-  team: {
-    full_name: string;
-    abbreviation: string;
-    nickname: string;
-    primary_color: string;
-    mlb_team_id: number | null;
-  } | null;
+  team: Team | null;
   title: string;
   total_print: number | null;
   image_url: string;
@@ -44,15 +50,18 @@ interface User {
 
 export default function ToppsNowPage() {
   const [toppsCards, setToppsCards] = useState<ToppsCard[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [rowModesModel, setRowModesModel] = useState<GridRowModesModel>({});
+  const [filteredRowCount, setFilteredRowCount] = useState<number | null>(null);
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
     severity: 'success'
   });
+  const [rankingTab, setRankingTab] = useState(0);
+  const apiRef = useGridApiRef();
 
   // ユーザー情報を取得
   useEffect(() => {
@@ -97,14 +106,55 @@ export default function ToppsNowPage() {
     fetchToppsCards();
   }, []);
 
+  // チーム一覧を取得
+  useEffect(() => {
+    const fetchTeams = async () => {
+      try {
+        const response = await fetch('/api/teams/');
+        if (response.ok) {
+          const data = await response.json();
+          setTeams(data.results || data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch teams:', error);
+      }
+    };
+
+    fetchTeams();
+  }, []);
+
   const isSuperuser = user?.is_superuser ?? false;
 
   // カード更新処理
   const handleProcessRowUpdate = useCallback(async (newRow: ToppsCard, oldRow: ToppsCard) => {
+    console.log('=== handleProcessRowUpdate called ===');
+    console.log('newRow:', newRow);
+    console.log('oldRow:', oldRow);
+
     const token = localStorage.getItem('access_token');
     if (!token) {
       throw new Error('認証が必要です');
     }
+
+    // release_dateがDateオブジェクトの場合は文字列に変換
+    let releaseDate = newRow.release_date;
+    if (releaseDate && typeof releaseDate === 'object' && 'toISOString' in releaseDate) {
+      releaseDate = (releaseDate as Date).toISOString().split('T')[0];
+    }
+
+    const updateData: Record<string, unknown> = {
+      product_url: newRow.product_url,
+      product_url_long: newRow.product_url_long,
+      release_date: releaseDate,
+      total_print: newRow.total_print,
+    };
+
+    // team_idが変更された場合は追加
+    if (newRow.team?.id !== oldRow.team?.id) {
+      updateData.team_id = newRow.team?.id || null;
+    }
+
+    console.log('Updating card:', newRow.id, updateData);
 
     try {
       const response = await fetch(`/api/topps-cards/${newRow.id}/`, {
@@ -113,20 +163,17 @@ export default function ToppsNowPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          product_url: newRow.product_url,
-          product_url_long: newRow.product_url_long,
-          release_date: newRow.release_date,
-          total_print: newRow.total_print,
-        })
+        body: JSON.stringify(updateData)
       });
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('Update failed:', error);
         throw new Error(error.error || '更新に失敗しました');
       }
 
       const updatedCard = await response.json();
+      console.log('Update response:', updatedCard);
       setSnackbar({ open: true, message: '更新しました', severity: 'success' });
 
       // 更新されたカードをマージ（ネストされたオブジェクトを保持）
@@ -136,12 +183,14 @@ export default function ToppsNowPage() {
         product_url_long: updatedCard.product_url_long,
         release_date: updatedCard.release_date,
         total_print: updatedCard.total_print,
+        team: updatedCard.team,
       };
 
       // ローカルステートを更新
       setToppsCards(prev => prev.map(card => card.id === newRow.id ? mergedCard : card));
       return mergedCard;
     } catch (error) {
+      console.error('Update error:', error);
       setSnackbar({ open: true, message: error instanceof Error ? error.message : '更新に失敗しました', severity: 'error' });
       throw error;
     }
@@ -254,100 +303,34 @@ export default function ToppsNowPage() {
       },
     },
     {
-      field: 'player',
-      headerName: '選手名',
-      width: 200,
-      headerClassName: 'data-grid-header',
-      valueGetter: (value, row) => row.player?.full_name || 'Team Set',
-      filterable: true,
-      renderCell: (params) => {
-        const player = params.row.player;
-        if (player && player.mlb_player_id) {
-          return (
-            <Link
-              href={`/players/${player.id}`}
-              sx={{
-                color: '#1a472a',
-                fontWeight: 500,
-                textDecoration: 'none',
-                '&:hover': {
-                  textDecoration: 'underline',
-                  color: '#2e7d32',
-                },
-              }}
-            >
-              {player.full_name}
-            </Link>
-          );
-        }
-        return player?.full_name || 'Team Set';
-      },
-    },
-    {
-      field: 'team',
-      headerName: 'チーム',
-      width: 180,
-      headerClassName: 'data-grid-header',
-      valueGetter: (value, row) => row.team?.full_name || '-',
-      filterable: true,
-    },
-    {
-      field: 'total_print',
-      headerName: '発行枚数',
-      width: 130,
-      type: 'number',
-      headerClassName: 'data-grid-header',
-      editable: editMode,
-      valueFormatter: (value: number | null) => value ? value.toLocaleString() : '-',
-      filterable: true,
-    },
-    // 編集モード時のみURLと発行日を編集可能列として追加
-    ...(editMode ? [
-      {
-        field: 'product_url',
-        headerName: '商品URL',
-        width: 200,
-        headerClassName: 'data-grid-header',
-        editable: true,
-        filterable: false,
-      },
-      {
-        field: 'product_url_long',
-        headerName: '商品URL (長)',
-        width: 200,
-        headerClassName: 'data-grid-header',
-        editable: true,
-        filterable: false,
-      },
-    ] as GridColDef[] : []),
-    {
       field: 'release_date',
       headerName: '発行日',
-      width: 130,
+      width: 140,
       headerClassName: 'data-grid-header',
       editable: editMode,
-      type: editMode ? 'date' : undefined,
-      valueGetter: (value) => {
+      type: 'date',
+      valueGetter: (value: string | null) => {
         if (!value) return null;
-        if (editMode) {
-          return new Date(value);
-        }
-        return value;
+        // 文字列からDateオブジェクトに変換
+        return new Date(value);
       },
-      valueSetter: (value, row) => {
+      valueSetter: (value: Date | string | null, row: ToppsCard) => {
         if (value instanceof Date) {
           return { ...row, release_date: value.toISOString().split('T')[0] };
         }
         return { ...row, release_date: value };
       },
-      renderCell: (params) => {
-        if (editMode) return null; // 編集モード時はデフォルト表示
-
+      renderCell: (params: { row: ToppsCard }) => {
         const releaseDate = params.row.release_date;
         if (!releaseDate) return '-';
 
         const date = new Date(releaseDate);
         const formattedDate = date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        // 編集モード時はシンプルに日付表示
+        if (editMode) {
+          return formattedDate;
+        }
 
         // mlb_game_idが保存されている場合は直接リンク
         const mlbGameId = params.row.mlb_game_id;
@@ -378,7 +361,7 @@ export default function ToppsNowPage() {
 
         const team = params.row.team;
 
-        const handleClick = async (e: React.MouseEvent) => {
+        const handleClick = async (e: MouseEvent<HTMLAnchorElement>) => {
           e.preventDefault();
 
           if (team?.mlb_team_id) {
@@ -426,7 +409,128 @@ export default function ToppsNowPage() {
       filterable: true,
       sortable: true,
     },
-  ], [editMode]);
+    {
+      field: 'total_print',
+      headerName: '発行枚数',
+      width: 130,
+      type: 'number',
+      headerClassName: 'data-grid-header',
+      editable: editMode,
+      valueFormatter: (value: number | null) => value ? value.toLocaleString() : '-',
+      filterable: true,
+    },
+    {
+      field: 'player',
+      headerName: '選手名',
+      width: 200,
+      headerClassName: 'data-grid-header',
+      valueGetter: (_value: unknown, row: ToppsCard) => row.player?.full_name || 'Team Set',
+      filterable: true,
+      renderCell: (params: { row: ToppsCard }) => {
+        const player = params.row.player;
+        if (player && player.mlb_player_id) {
+          return (
+            <Link
+              href={`/players/${player.id}`}
+              sx={{
+                color: '#1a472a',
+                fontWeight: 500,
+                textDecoration: 'none',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: '#2e7d32',
+                },
+              }}
+            >
+              {player.full_name}
+            </Link>
+          );
+        }
+        return player?.full_name || 'Team Set';
+      },
+    },
+    {
+      field: 'team',
+      headerName: 'チーム',
+      width: 180,
+      headerClassName: 'data-grid-header',
+      editable: editMode,
+      type: editMode ? 'singleSelect' : undefined,
+      valueOptions: editMode ? [
+        { value: '', label: '-' },
+        ...teams.map((t: Team) => ({ value: t.id, label: t.full_name }))
+      ] : undefined,
+      valueGetter: (_value: unknown, row: ToppsCard) => {
+        if (editMode) {
+          return row.team?.id || '';
+        }
+        return row.team?.full_name || '-';
+      },
+      valueSetter: (value: number | string | null, row: ToppsCard) => {
+        if (value === '' || value === null) {
+          return { ...row, team: null };
+        }
+        const selectedTeam = teams.find((t: Team) => t.id === value);
+        return { ...row, team: selectedTeam || null };
+      },
+      renderCell: (params: { row: ToppsCard }) => {
+        return params.row.team?.full_name || '-';
+      },
+      filterable: true,
+    },
+    // 編集モード時のみURLを編集可能列として追加
+    ...(editMode ? [
+      {
+        field: 'product_url',
+        headerName: '商品URL',
+        width: 200,
+        headerClassName: 'data-grid-header',
+        editable: true,
+        filterable: false,
+      },
+      {
+        field: 'product_url_long',
+        headerName: '商品URL (長)',
+        width: 200,
+        headerClassName: 'data-grid-header',
+        editable: true,
+        filterable: false,
+      },
+    ] as GridColDef[] : []),
+    {
+      field: 'nationality',
+      headerName: '国籍',
+      width: 100,
+      headerClassName: 'data-grid-header',
+      valueGetter: (_value: unknown, row: ToppsCard) => row.player?.nationality || '-',
+      filterable: true,
+    },
+    {
+      field: 'wbc',
+      headerName: 'WBC',
+      width: 160,
+      headerClassName: 'data-grid-header',
+      valueGetter: (_value: unknown, row: ToppsCard) => {
+        if (!row.player?.wbc_years) return '';
+        return `${row.player.wbc_country} (${row.player.wbc_years})`;
+      },
+      filterable: true,
+      renderCell: (params: { row: ToppsCard }) => {
+        const player = params.row.player;
+        if (!player?.wbc_years) return '-';
+        return (
+          <Box sx={{ lineHeight: 1.3 }}>
+            <Typography variant="caption" sx={{ fontWeight: 600, display: 'block' }}>
+              {player.wbc_country}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {player.wbc_years}
+            </Typography>
+          </Box>
+        );
+      },
+    },
+  ], [editMode, teams]);
 
   // 統計情報を計算
   const stats = useMemo(() => {
@@ -452,6 +556,171 @@ export default function ToppsNowPage() {
       maxPrintCard,
       minPrintCard,
     };
+  }, [toppsCards]);
+
+  // 選手登場回数ランキング
+  const playerRanking = useMemo(() => {
+    const playerCounts = new Map<number, { name: string; count: number }>();
+
+    toppsCards.forEach((card: ToppsCard) => {
+      if (card.player) {
+        const existing = playerCounts.get(card.player.id);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          playerCounts.set(card.player.id, { name: card.player.full_name, count: 1 });
+        }
+      }
+    });
+
+    return Array.from(playerCounts.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [toppsCards]);
+
+  // チーム登場回数ランキング
+  const teamRanking = useMemo(() => {
+    const teamCounts = new Map<number, { name: string; count: number }>();
+
+    toppsCards.forEach((card: ToppsCard) => {
+      if (card.team) {
+        const existing = teamCounts.get(card.team.id);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          teamCounts.set(card.team.id, { name: card.team.full_name, count: 1 });
+        }
+      }
+    });
+
+    return Array.from(teamCounts.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [toppsCards]);
+
+  // 選手ごとの合計発行数ランキング
+  const playerTotalPrintRanking = useMemo(() => {
+    const playerPrints = new Map<number, { name: string; totalPrint: number; cardCount: number }>();
+
+    toppsCards.forEach((card: ToppsCard) => {
+      if (card.player && card.total_print) {
+        const existing = playerPrints.get(card.player.id);
+        if (existing) {
+          existing.totalPrint += card.total_print;
+          existing.cardCount += 1;
+        } else {
+          playerPrints.set(card.player.id, {
+            name: card.player.full_name,
+            totalPrint: card.total_print,
+            cardCount: 1,
+          });
+        }
+      }
+    });
+
+    return Array.from(playerPrints.values())
+      .sort((a, b) => b.totalPrint - a.totalPrint)
+      .slice(0, 10);
+  }, [toppsCards]);
+
+  // 選手ごとの1枚あたり平均発行数ランキング
+  const playerAvgPrintRanking = useMemo(() => {
+    const playerPrints = new Map<number, { name: string; totalPrint: number; cardCount: number }>();
+
+    toppsCards.forEach((card: ToppsCard) => {
+      if (card.player && card.total_print) {
+        const existing = playerPrints.get(card.player.id);
+        if (existing) {
+          existing.totalPrint += card.total_print;
+          existing.cardCount += 1;
+        } else {
+          playerPrints.set(card.player.id, {
+            name: card.player.full_name,
+            totalPrint: card.total_print,
+            cardCount: 1,
+          });
+        }
+      }
+    });
+
+    return Array.from(playerPrints.values())
+      .map(p => ({
+        ...p,
+        avgPrint: Math.round(p.totalPrint / p.cardCount),
+      }))
+      .filter(p => p.cardCount >= 2) // 2枚以上のカードがある選手のみ
+      .sort((a, b) => b.avgPrint - a.avgPrint)
+      .slice(0, 10);
+  }, [toppsCards]);
+
+  // チームごとの1枚あたり平均発行数ランキング
+  const teamAvgPrintRanking = useMemo(() => {
+    const teamPrints = new Map<number, { name: string; totalPrint: number; cardCount: number }>();
+
+    toppsCards.forEach((card: ToppsCard) => {
+      if (card.team && card.total_print) {
+        const existing = teamPrints.get(card.team.id);
+        if (existing) {
+          existing.totalPrint += card.total_print;
+          existing.cardCount += 1;
+        } else {
+          teamPrints.set(card.team.id, {
+            name: card.team.full_name,
+            totalPrint: card.total_print,
+            cardCount: 1,
+          });
+        }
+      }
+    });
+
+    return Array.from(teamPrints.values())
+      .map(t => ({
+        ...t,
+        avgPrint: Math.round(t.totalPrint / t.cardCount),
+      }))
+      .sort((a, b) => b.avgPrint - a.avgPrint)
+      .slice(0, 10);
+  }, [toppsCards]);
+
+  // 1枚単位の発行数ランキング（最大・最小）
+  const cardPrintRanking = useMemo(() => {
+    const cardsWithPrint = toppsCards.filter((card: ToppsCard) => card.total_print !== null && card.total_print > 0);
+
+    const sortedByPrint = [...cardsWithPrint].sort((a, b) => (b.total_print || 0) - (a.total_print || 0));
+
+    const maxPrintCards = sortedByPrint.slice(0, 10);
+    const minPrintCards = sortedByPrint.slice(-10).reverse();
+
+    return { maxPrintCards, minPrintCards };
+  }, [toppsCards]);
+
+  // 国籍別合計発行数ランキング
+  const nationalityPrintRanking = useMemo(() => {
+    const nationalityPrints = new Map<string, { nationality: string; totalPrint: number; cardCount: number }>();
+
+    toppsCards.forEach((card: ToppsCard) => {
+      if (card.player?.nationality && card.total_print) {
+        const nationality = card.player.nationality;
+        const existing = nationalityPrints.get(nationality);
+        if (existing) {
+          existing.totalPrint += card.total_print;
+          existing.cardCount += 1;
+        } else {
+          nationalityPrints.set(nationality, {
+            nationality,
+            totalPrint: card.total_print,
+            cardCount: 1,
+          });
+        }
+      }
+    });
+
+    return Array.from(nationalityPrints.values())
+      .map(n => ({
+        ...n,
+        avgPrint: Math.round(n.totalPrint / n.cardCount),
+      }))
+      .sort((a, b) => b.totalPrint - a.totalPrint);
   }, [toppsCards]);
 
   return (
@@ -606,6 +875,480 @@ export default function ToppsNowPage() {
                 </Typography>
               </Paper>
             </Box>
+
+            {/* ランキングセクション - タブUI */}
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 4,
+                borderRadius: 3,
+                border: "1px solid #e8f5e9",
+                overflow: 'hidden',
+              }}
+            >
+              <Tabs
+                value={rankingTab}
+                onChange={(_: SyntheticEvent, newValue: number) => setRankingTab(newValue)}
+                variant="scrollable"
+                scrollButtons="auto"
+                sx={{
+                  bgcolor: '#f1f8f4',
+                  borderBottom: '1px solid #e8f5e9',
+                  '& .MuiTab-root': {
+                    fontWeight: 600,
+                    color: '#1a472a',
+                    minHeight: 48,
+                    '&.Mui-selected': {
+                      color: '#2e7d32',
+                    },
+                  },
+                  '& .MuiTabs-indicator': {
+                    backgroundColor: '#2e7d32',
+                  },
+                }}
+              >
+                <Tab label="選手登場回数" />
+                <Tab label="チーム登場回数" />
+                <Tab label="国籍別発行数" />
+                <Tab label="選手合計発行数" />
+                <Tab label="選手1枚平均" />
+                <Tab label="チーム1枚平均" />
+                <Tab label="最多発行（1枚）" />
+                <Tab label="最少発行（1枚）" />
+              </Tabs>
+
+              <Box sx={{ p: 3 }}>
+                {/* 選手登場回数ランキング */}
+                {rankingTab === 0 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {playerRanking.map((player: { name: string; count: number }, index: number) => (
+                      <Box
+                        component="li"
+                        key={index}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < playerRanking.length - 1 ? '1px solid #e8f5e9' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                              color: index < 3 ? 'white' : '#1a472a',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                            {player.name}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`${player.count}枚`}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                            color: index < 3 ? 'white' : '#1a472a',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* チーム登場回数ランキング */}
+                {rankingTab === 1 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {teamRanking.map((team: { name: string; count: number }, index: number) => (
+                      <Box
+                        component="li"
+                        key={index}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < teamRanking.length - 1 ? '1px solid #e8f5e9' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                              color: index < 3 ? 'white' : '#1a472a',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                            {team.name}
+                          </Typography>
+                        </Box>
+                        <Chip
+                          label={`${team.count}枚`}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                            color: index < 3 ? 'white' : '#1a472a',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* 国籍別合計発行数ランキング */}
+                {rankingTab === 2 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {nationalityPrintRanking.map((item: { nationality: string; totalPrint: number; cardCount: number; avgPrint: number }, index: number) => (
+                      <Box
+                        component="li"
+                        key={index}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < nationalityPrintRanking.length - 1 ? '1px solid #fff3e0' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#e65100' : '#fff3e0',
+                              color: index < 3 ? 'white' : '#e65100',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                              {item.nationality}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {item.cardCount}枚 / 平均{item.avgPrint.toLocaleString()}枚
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={item.totalPrint.toLocaleString()}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#e65100' : '#fff3e0',
+                            color: index < 3 ? 'white' : '#e65100',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* 選手合計発行数ランキング */}
+                {rankingTab === 3 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {playerTotalPrintRanking.map((player: { name: string; totalPrint: number; cardCount: number }, index: number) => (
+                      <Box
+                        component="li"
+                        key={index}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < playerTotalPrintRanking.length - 1 ? '1px solid #e8f5e9' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                              color: index < 3 ? 'white' : '#1a472a',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                              {player.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {player.cardCount}種類のカード
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={player.totalPrint.toLocaleString()}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                            color: index < 3 ? 'white' : '#1a472a',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* 1枚あたり平均発行数ランキング */}
+                {rankingTab === 4 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {playerAvgPrintRanking.map((player: { name: string; totalPrint: number; cardCount: number; avgPrint: number }, index: number) => (
+                      <Box
+                        component="li"
+                        key={index}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < playerAvgPrintRanking.length - 1 ? '1px solid #e8f5e9' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#1565c0' : '#e3f2fd',
+                              color: index < 3 ? 'white' : '#1565c0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                              {player.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {player.cardCount}種類 / 合計{player.totalPrint.toLocaleString()}枚
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={`${player.avgPrint.toLocaleString()}/枚`}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#1565c0' : '#e3f2fd',
+                            color: index < 3 ? 'white' : '#1565c0',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* チーム1枚あたり平均発行数ランキング */}
+                {rankingTab === 5 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {teamAvgPrintRanking.map((team: { name: string; totalPrint: number; cardCount: number; avgPrint: number }, index: number) => (
+                      <Box
+                        component="li"
+                        key={index}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < teamAvgPrintRanking.length - 1 ? '1px solid #e8f5e9' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#7b1fa2' : '#f3e5f5',
+                              color: index < 3 ? 'white' : '#7b1fa2',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                              {team.name}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {team.cardCount}種類 / 合計{team.totalPrint.toLocaleString()}枚
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={`${team.avgPrint.toLocaleString()}/枚`}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#7b1fa2' : '#f3e5f5',
+                            color: index < 3 ? 'white' : '#7b1fa2',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* 1枚単位 最多発行数ランキング */}
+                {rankingTab === 6 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {cardPrintRanking.maxPrintCards.map((card: ToppsCard, index: number) => (
+                      <Box
+                        component="li"
+                        key={card.id}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < cardPrintRanking.maxPrintCards.length - 1 ? '1px solid #e8f5e9' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                              color: index < 3 ? 'white' : '#1a472a',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                              {card.player?.full_name || 'Team Set'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              #{card.card_number}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={card.total_print?.toLocaleString()}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#2e7d32' : '#e8f5e9',
+                            color: index < 3 ? 'white' : '#1a472a',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {/* 1枚単位 最少発行数ランキング */}
+                {rankingTab === 7 && (
+                  <Box component="ol" sx={{ m: 0, pl: 2.5 }}>
+                    {cardPrintRanking.minPrintCards.map((card: ToppsCard, index: number) => (
+                      <Box
+                        component="li"
+                        key={card.id}
+                        sx={{
+                          py: 1,
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderBottom: index < cardPrintRanking.minPrintCards.length - 1 ? '1px solid #e8f5e9' : 'none',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                          <Typography
+                            sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: index < 3 ? '#d32f2f' : '#ffebee',
+                              color: index < 3 ? 'white' : '#c62828',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {index + 1}
+                          </Typography>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: index < 3 ? 700 : 400 }}>
+                              {card.player?.full_name || 'Team Set'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              #{card.card_number}
+                            </Typography>
+                          </Box>
+                        </Box>
+                        <Chip
+                          label={card.total_print?.toLocaleString()}
+                          size="small"
+                          sx={{
+                            bgcolor: index < 3 ? '#d32f2f' : '#ffebee',
+                            color: index < 3 ? 'white' : '#c62828',
+                            fontWeight: 600,
+                          }}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            </Paper>
           </Box>
         )}
 
@@ -626,7 +1369,9 @@ export default function ToppsNowPage() {
                 カード一覧
               </Typography>
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                全{toppsCards.length}件のカードデータ
+                {filteredRowCount !== null && filteredRowCount !== toppsCards.length
+                  ? `${filteredRowCount}件 / 全${toppsCards.length}件のカードデータ`
+                  : `全${toppsCards.length}件のカードデータ`}
               </Typography>
             </Box>
             {isSuperuser && (
@@ -685,11 +1430,30 @@ export default function ToppsNowPage() {
               }}
             >
               <DataGrid
+                apiRef={apiRef}
                 rows={toppsCards}
                 columns={columns}
-                editMode="row"
+                editMode="cell"
                 processRowUpdate={handleProcessRowUpdate}
                 onProcessRowUpdateError={handleProcessRowUpdateError}
+                onFilterModelChange={() => {
+                  // フィルタが変更された時に行数を更新
+                  setTimeout(() => {
+                    // フィルタ後の表示行数を取得
+                    const filteredRows = apiRef.current?.getRowModels?.();
+                    if (filteredRows) {
+                      // フィルタリング後の実際の行数
+                      let count = 0;
+                      const lookup = apiRef.current?.state?.filter?.filteredRowsLookup;
+                      if (lookup) {
+                        count = Object.values(lookup).filter(v => v).length;
+                      } else {
+                        count = filteredRows.size;
+                      }
+                      setFilteredRowCount(count);
+                    }
+                  }, 50);
+                }}
                 initialState={{
                   pagination: {
                     paginationModel: { page: 0, pageSize: 25 },

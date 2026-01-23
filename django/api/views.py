@@ -1,18 +1,24 @@
+import logging
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
+
+logger = logging.getLogger(__name__)
 from .models import (
     Account, Session, VerificationToken, News, Inquiry, Blog,
-    Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant
+    Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant,
+    WBCTournament, WBCGame, WBCRosterEntry
 )
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     AccountSerializer, SessionSerializer, VerificationTokenSerializer,
     NewsSerializer, InquirySerializer, BlogSerializer,
-    LoginSerializer, ToppsCardSerializer, PlayerSerializer
+    LoginSerializer, ToppsCardSerializer, PlayerSerializer, TeamSerializer,
+    WBCTournamentListSerializer, WBCTournamentDetailSerializer,
+    WBCRosterEntrySerializer
 )
 
 User = get_user_model()
@@ -209,6 +215,15 @@ def current_user_view(request):
     return Response(serializer.data)
 
 
+class TeamViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Team read-only operations
+    """
+    queryset = Team.objects.all().order_by('full_name')
+    serializer_class = TeamSerializer
+    permission_classes = [AllowAny]
+
+
 class PlayerViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Player read-only operations with stats
@@ -266,7 +281,25 @@ class ToppsCardViewSet(viewsets.ModelViewSet):
                 {'error': 'superuserのみがカード情報を更新できます'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        return super().partial_update(request, *args, **kwargs)
+        logger.warning(f"=== PATCH request data: {request.data}")
+        instance = self.get_object()
+        logger.warning(f"=== Before update - product_url: {instance.product_url}, id: {instance.id}")
+
+        # 直接クエリで更新
+        update_fields = {}
+        for field in ['product_url', 'product_url_long', 'release_date', 'total_print', 'team_id']:
+            if field in request.data:
+                update_fields[field] = request.data[field]
+
+        logger.warning(f"=== Update fields: {update_fields}")
+        ToppsCard.objects.filter(id=instance.id).update(**update_fields)
+
+        # 再取得
+        instance = ToppsCard.objects.get(id=instance.id)
+        logger.warning(f"=== After update - product_url: {instance.product_url}")
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         if not request.user.is_superuser:
@@ -298,6 +331,32 @@ class ToppsCardViewSet(viewsets.ModelViewSet):
                 pass
 
         return queryset
+
+
+class WBCTournamentViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    WBC Tournament read-only operations
+    """
+    queryset = WBCTournament.objects.all()
+    permission_classes = [AllowAny]
+    pagination_class = None
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return WBCTournamentDetailSerializer
+        return WBCTournamentListSerializer
+
+    @action(detail=True, methods=['get'])
+    def roster(self, request, pk=None):
+        tournament = self.get_object()
+        entries = tournament.roster_entries.select_related('player').all()
+
+        country = request.query_params.get('country', None)
+        if country:
+            entries = entries.filter(country=country)
+
+        serializer = WBCRosterEntrySerializer(entries, many=True)
+        return Response(serializer.data)
 
 
 @api_view(['GET'])

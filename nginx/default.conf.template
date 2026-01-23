@@ -1,13 +1,15 @@
 server {
     listen 80;
-    server_name ${SERVER_NAME};
+    server_name _;
 
+    absolute_redirect off;
     client_max_body_size 10M;
 
     # Django API
     location /api/ {
-        proxy_pass http://django_app:8000/api/;
+        proxy_pass http://django_app:8000;
         proxy_http_version 1.1;
+        proxy_redirect off;
 
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

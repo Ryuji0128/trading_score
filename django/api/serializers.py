@@ -2,7 +2,8 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
     Account, Session, VerificationToken, News, Inquiry, Blog,
-    Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant
+    Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant,
+    WBCTournament, WBCGame, WBCRosterEntry
 )
 
 User = get_user_model()
@@ -152,13 +153,56 @@ class PlayerSimpleSerializer(serializers.ModelSerializer):
     """カード一覧用の軽量シリアライザー（成績を含まない）"""
     class Meta:
         model = Player
-        fields = ['id', 'full_name', 'mlb_player_id']
+        fields = ['id', 'full_name', 'mlb_player_id', 'nationality', 'wbc_years', 'wbc_country']
 
 
 class ToppsSetSerializer(serializers.ModelSerializer):
     class Meta:
         model = ToppsSet
         fields = ['id', 'year', 'brand', 'name', 'slug']
+
+
+# WBC Serializers
+class WBCGameSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WBCGame
+        fields = ['id', 'game_pk', 'game_date', 'away_team', 'home_team', 'away_score', 'home_score', 'status']
+
+
+class WBCRosterEntrySerializer(serializers.ModelSerializer):
+    has_topps_card = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WBCRosterEntry
+        fields = ['id', 'country', 'mlb_player_id', 'player_name', 'player', 'has_topps_card']
+
+    def get_has_topps_card(self, obj):
+        if obj.player:
+            return obj.player.topps_cards.exists()
+        return False
+
+
+class WBCTournamentListSerializer(serializers.ModelSerializer):
+    game_count = serializers.SerializerMethodField()
+    country_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WBCTournament
+        fields = ['id', 'year', 'champion', 'runner_up', 'game_count', 'country_count']
+
+    def get_game_count(self, obj):
+        return obj.games.count()
+
+    def get_country_count(self, obj):
+        return obj.roster_entries.values('country').distinct().count()
+
+
+class WBCTournamentDetailSerializer(serializers.ModelSerializer):
+    games = WBCGameSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = WBCTournament
+        fields = ['id', 'year', 'champion', 'runner_up', 'games']
 
 
 class ToppsCardSerializer(serializers.ModelSerializer):

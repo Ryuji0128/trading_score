@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
     UserViewSet, AccountViewSet, SessionViewSet, VerificationTokenViewSet,
     NewsViewSet, InquiryViewSet, BlogViewSet, ToppsCardViewSet, PlayerViewSet,
+    TeamViewSet, WBCTournamentViewSet,
     login_view, register_view, current_user_view, get_game_id
 )
 
@@ -17,6 +18,8 @@ router.register(r'inquiries', InquiryViewSet, basename='inquiry')
 router.register(r'blogs', BlogViewSet, basename='blog')
 router.register(r'topps-cards', ToppsCardViewSet, basename='topps-card')
 router.register(r'players', PlayerViewSet, basename='player')
+router.register(r'teams', TeamViewSet, basename='team')
+router.register(r'wbc-tournaments', WBCTournamentViewSet, basename='wbc-tournament')
 
 urlpatterns = [
     # Authentication endpoints

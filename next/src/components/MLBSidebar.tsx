@@ -9,6 +9,7 @@ import StyleIcon from "@mui/icons-material/Style";
 import LoginIcon from "@mui/icons-material/Login";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import SportsIcon from "@mui/icons-material/Sports";
+import PublicIcon from "@mui/icons-material/Public";
 
 const menuItems = [
   { text: "ホーム", icon: <HomeIcon />, path: "/" },
@@ -16,6 +17,7 @@ const menuItems = [
   { text: "Topps Now", icon: <StyleIcon />, path: "/topps-now" },
   { text: "MLB順位表", icon: <TrendingUpIcon />, path: "/stats" },
   { text: "最近の試合結果", icon: <SportsIcon />, path: "/games" },
+  { text: "WBC", icon: <PublicIcon />, path: "/wbc" },
   { text: "チーム一覧", icon: <EmojiEventsIcon />, path: "/teams" },
   { text: "ログイン", icon: <LoginIcon />, path: "/login" },
 ];

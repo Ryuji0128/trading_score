@@ -258,6 +258,16 @@ class Player(models.Model):
     birth_date = models.DateField(null=True, blank=True)
     nationality = models.CharField(max_length=100, blank=True)
 
+    # WBC出場情報
+    wbc_years = models.CharField(
+        max_length=50, blank=True,
+        help_text="WBC出場年をカンマ区切りで格納（例: 2017,2023）"
+    )
+    wbc_country = models.CharField(
+        max_length=100, blank=True,
+        help_text="WBC出場時の代表国"
+    )
+
     image_url = models.CharField(max_length=500, blank=True)
 
     is_active = models.BooleanField(default=True)
@@ -495,3 +505,67 @@ class ToppsCardVariant(models.Model):
     def __str__(self):
         base = f"{self.card}"
         return f"{base} /{self.serial_number}" if self.serial_number else base
+
+
+# =========================
+# WBC (World Baseball Classic)
+# =========================
+
+class WBCTournament(models.Model):
+    id = models.AutoField(primary_key=True)
+    year = models.PositiveIntegerField(unique=True)
+    champion = models.CharField(max_length=100, blank=True)
+    runner_up = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-year']
+
+    def __str__(self):
+        return f"WBC {self.year}"
+
+
+class WBCGame(models.Model):
+    id = models.AutoField(primary_key=True)
+    tournament = models.ForeignKey(WBCTournament, on_delete=models.CASCADE, related_name='games')
+    game_pk = models.PositiveIntegerField(unique=True, help_text="MLB Stats API gamePk")
+    game_date = models.DateField()
+
+    away_team = models.CharField(max_length=100)
+    home_team = models.CharField(max_length=100)
+    away_score = models.PositiveIntegerField(null=True, blank=True)
+    home_score = models.PositiveIntegerField(null=True, blank=True)
+
+    status = models.CharField(max_length=50, default='Final')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['game_date', 'game_pk']
+
+    def __str__(self):
+        return f"{self.away_team} vs {self.home_team} ({self.game_date})"
+
+
+class WBCRosterEntry(models.Model):
+    id = models.AutoField(primary_key=True)
+    tournament = models.ForeignKey(WBCTournament, on_delete=models.CASCADE, related_name='roster_entries')
+    country = models.CharField(max_length=100)
+
+    mlb_player_id = models.PositiveIntegerField(help_text="MLB Stats API player ID")
+    player_name = models.CharField(max_length=255)
+
+    player = models.ForeignKey(
+        Player, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='wbc_roster_entries'
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['tournament', 'mlb_player_id', 'country']]
+        ordering = ['country', 'player_name']
+
+    def __str__(self):
+        return f"{self.player_name} ({self.country}, WBC {self.tournament.year})"
