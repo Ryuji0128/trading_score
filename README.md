@@ -273,6 +273,107 @@ trading_score/
 ### インフラ
 - Docker / Docker Compose
 - Nginx（リバースプロキシ）
+- GitHub Actions（CI/CD）
+
+## 本番デプロイ
+
+### GitHub Actions による自動デプロイ
+
+PRがmainにマージされるか、手動でworkflow_dispatchを実行すると自動デプロイが行われます。
+
+### 本番環境のセットアップ
+
+1. **本番サーバーでリポジトリをクローン**
+```bash
+cd ~
+git clone git@github.com:ryuji0128/trading_score.git
+cd trading_score
+```
+
+2. **環境変数ファイルを作成**
+
+`~/trading_score/.env`:
+```bash
+MYSQL_ROOT_PASSWORD=<rootパスワード>
+MYSQL_DATABASE=app_db
+MYSQL_USER=app_user
+MYSQL_PASSWORD=<本番用パスワード>
+SERVER_NAME=baseball-now.com
+```
+
+`~/trading_score/django/.env`:
+```bash
+SECRET_KEY=<強力なランダム文字列>
+DEBUG=False
+ALLOWED_HOSTS=baseball-now.com,www.baseball-now.com,django
+CORS_ALLOWED_ORIGINS=https://baseball-now.com,https://www.baseball-now.com
+
+DB_ENGINE=django.db.backends.mysql
+DB_NAME=app_db
+DB_USER=app_user
+DB_PASSWORD=<本番用パスワード>
+DB_HOST=mysql
+DB_PORT=3306
+```
+
+`~/trading_score/next/.env`:
+```bash
+INTERNAL_API_URL=http://django:8000/api
+AUTH_SECRET=<本番用シークレット>
+NEXTAUTH_URL=https://baseball-now.com
+DATABASE_URL=mysql://app_user:<パスワード>@mysql:3306/app_db
+NEXT_PUBLIC_BASE_URL=https://baseball-now.com
+NEXT_PUBLIC_SITE_URL=https://baseball-now.com
+
+STRIPE_SECRET_KEY=<本番用Stripeキー>
+
+CONTACT_TO_EMAIL=info@setaseisakusyo.com
+SMTP_HOST=mail1042.onamae.ne.jp
+SMTP_PORT=465
+SMTP_USER=info@setaseisakusyo.com
+SMTP_PASS=<SMTPパスワード>
+```
+
+3. **シークレットキー生成**
+```bash
+# Django SECRET_KEY
+python3 -c "import secrets; print(secrets.token_urlsafe(50))"
+
+# Next.js AUTH_SECRET
+openssl rand -base64 32
+```
+
+### GitHub Secrets の設定
+
+リポジトリ → Settings → Secrets and variables → Actions で以下を設定:
+
+| Secret名 | 説明 |
+|----------|------|
+| `SSH_HOST` | 本番サーバーのIPアドレス |
+| `SSH_PORT` | SSHポート（通常22） |
+| `SSH_USERNAME` | ログインユーザー名 |
+| `SSH_SECRET_KEY` | SSH秘密鍵 |
+| `GH_PAT` | GitHub Personal Access Token（packages:read権限） |
+| `GH_USERNAME` | GitHubユーザー名 |
+| `AUTH_SECRET` | Next.js認証用シークレット |
+
+### 本番環境の起動
+
+```bash
+# 手動起動（初回）
+docker compose -f docker-compose.prod.yml up -d
+
+# マイグレーション
+docker compose -f docker-compose.prod.yml exec django python manage.py migrate
+```
+
+### Docker Compose ファイル
+
+| ファイル | 用途 |
+|----------|------|
+| `docker-compose.yml` | 開発環境（ローカルビルド） |
+| `docker-compose.override.yml` | 開発用オーバーライド（ホットリロード） |
+| `docker-compose.prod.yml` | 本番環境（GitHub Container Registryからpull） |
 
 ## 開発コマンド
 
