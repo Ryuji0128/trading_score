@@ -45,15 +45,20 @@ docker compose exec django python manage.py migrate
 | next | next_app | 2999:3000 | Next.jsフロントエンド |
 | django | django_app | 8000 | Django REST API |
 | mysql | mysql_db | 3306 | MySQL 8.0 データベース |
-| nginx | nginx_proxy | 80:80 | リバースプロキシ |
+| nginx | nginx_proxy | 80, 443 | リバースプロキシ (HTTP/HTTPS) |
+| scheduler | scheduler | - | 定期バッチ処理（APScheduler） |
+| certbot | certbot | - | SSL証明書自動更新 |
 
 ### アーキテクチャ
 
 ```
-[ブラウザ] → [nginx:80] → [next:3000] (フロントエンド)
-                       → [django:8000/api] (API)
-                              ↓
-                         [mysql:3306]
+[ブラウザ] → [nginx:80/443] → [next:3000] (フロントエンド)
+                           → [django:8000/api] (API)
+                                  ↓
+                             [mysql:3306]
+
+[scheduler] → [django management commands] → [mysql:3306]
+[certbot] → 12時間ごとにSSL証明書の更新チェック
 ```
 
 ## 主要機能
@@ -202,7 +207,10 @@ docker compose exec django python manage.py update_card_teams
 trading_score/
 ├── docker-compose.yml
 ├── nginx/
-│   └── default.conf.template
+│   └── default.conf.template    # Nginx設定（HTTPS/レート制限）
+├── certbot/
+│   ├── conf/                    # SSL証明書（gitignore）
+│   └── www/                     # ACME challenge用
 ├── mysql/
 │   └── data/                      # MySQLデータ（gitignore）
 ├── django/
@@ -357,6 +365,47 @@ openssl rand -base64 32
 | `GH_USERNAME` | GitHubユーザー名 |
 | `AUTH_SECRET` | Next.js認証用シークレット |
 
+### SSL証明書のセットアップ（HTTPS）
+
+Let's Encrypt を使用して無料のSSL証明書を取得します。
+
+```bash
+# 1. certbot用ディレクトリを作成
+mkdir -p certbot/conf certbot/www
+
+# 2. ダミー証明書を作成（Nginx起動用）
+mkdir -p certbot/conf/live/baseball-now.com
+openssl req -x509 -nodes -newkey rsa:4096 -days 1 \
+  -keyout certbot/conf/live/baseball-now.com/privkey.pem \
+  -out certbot/conf/live/baseball-now.com/fullchain.pem \
+  -subj '/CN=localhost'
+
+# 3. 環境変数を設定
+export SERVER_NAME=baseball-now.com
+
+# 4. 全サービスを起動
+docker compose up -d
+
+# 5. ダミー証明書を削除
+sudo rm -rf certbot/conf/live/baseball-now.com
+
+# 6. 本物のSSL証明書を取得
+docker compose run --rm --entrypoint "" certbot certbot certonly --webroot \
+  --webroot-path=/var/www/certbot \
+  --email your-email@example.com \
+  --agree-tos \
+  --no-eff-email \
+  -d baseball-now.com
+
+# 7. Nginxを再起動して証明書を適用
+docker compose restart nginx
+
+# 8. HTTPS接続を確認
+curl -I https://baseball-now.com
+```
+
+**証明書の自動更新**: certbotコンテナが12時間ごとに証明書の更新をチェックします。手動での更新は不要です。
+
 ### 本番環境の起動
 
 ```bash
@@ -400,6 +449,13 @@ docker compose up -d django
 
 ## セキュリティ
 
+### HTTPS/SSL設定
+
+- **Let's Encrypt**: 無料SSL証明書（自動更新）
+- **TLS 1.2/1.3**: 最新のセキュアなプロトコルのみ対応
+- **HSTS**: HTTP Strict Transport Security 有効
+- **OCSP Stapling**: 証明書検証の高速化
+
 ### Nginx セキュリティヘッダー
 
 `nginx/default.conf.template`で以下を設定済み:
@@ -412,6 +468,12 @@ docker compose up -d django
 | `Referrer-Policy: strict-origin-when-cross-origin` | リファラー制御 |
 | `Content-Security-Policy` | CSP（スクリプト・スタイル制御） |
 | `server_tokens off` | Nginxバージョン非表示 |
+
+### 不正アクセス対策
+
+- **レート制限**: API・ログイン・一般リクエストに制限を設定
+- **不正ホストブロック**: 許可されたドメイン以外からのリクエストを拒否（444応答）
+- **ハニーポット**: スキャナーを検知するダミーエンドポイント
 
 ### fail2ban
 
