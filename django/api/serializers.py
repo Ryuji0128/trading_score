@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
-    Account, Session, VerificationToken, News, Inquiry, Blog,
+    Account, Session, VerificationToken, News, Inquiry, Blog, Contact,
     Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant,
     WBCTournament, WBCGame, WBCRosterEntry
 )
@@ -94,6 +94,13 @@ class InquirySerializer(serializers.ModelSerializer):
         model = Inquiry
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class ContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contact
+        fields = ['id', 'name', 'email', 'subject', 'message', 'status', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'status', 'created_at', 'updated_at']
 
 
 class BlogSerializer(serializers.ModelSerializer):

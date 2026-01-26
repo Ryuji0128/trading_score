@@ -1,7 +1,6 @@
 "use client";
 
 import BaseContainer from "@/components/BaseContainer";
-import { validateInquiry } from "@/lib/validation";
 import { CheckCircle, Error } from "@mui/icons-material";
 import {
   Box,
@@ -11,27 +10,24 @@ import {
   TextField,
   Typography
 } from "@mui/material";
-import axios from "axios";
 import { useCallback, useRef, useState } from "react";
 
 interface FormErrors {
   name?: string;
   email?: string;
-  phone?: string;
-  inquiry?: string;
-  company?: string;
+  subject?: string;
+  message?: string;
 }
 
 /**
- * ContactFormContent
- * 実際のフォームの中身
+ * ContactForm
+ * お問い合わせフォーム
  */
 export default function ContactForm() {
   const nameRef = useRef<HTMLInputElement>(null);
-  const companyRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
-  const phoneRef = useRef<HTMLInputElement>(null);
-  const inquiryRef = useRef<HTMLTextAreaElement>(null);
+  const subjectRef = useRef<HTMLInputElement>(null);
+  const messageRef = useRef<HTMLTextAreaElement>(null);
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -47,20 +43,34 @@ export default function ContactForm() {
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
+  // バリデーション
+  const validateForm = () => {
+    const newErrors: FormErrors = {};
+
+    if (!nameRef.current?.value?.trim()) {
+      newErrors.name = "お名前を入力してください";
+    }
+    if (!emailRef.current?.value?.trim()) {
+      newErrors.email = "メールアドレスを入力してください";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailRef.current.value)) {
+      newErrors.email = "有効なメールアドレスを入力してください";
+    }
+    if (!subjectRef.current?.value?.trim()) {
+      newErrors.subject = "件名を入力してください";
+    }
+    if (!messageRef.current?.value?.trim()) {
+      newErrors.message = "お問い合わせ内容を入力してください";
+    }
+
+    return newErrors;
+  };
+
   // フォーム送信
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const formData = {
-      name: nameRef.current?.value || "",
-      company: companyRef.current?.value || "",
-      email: emailRef.current?.value || "",
-      phone: phoneRef.current?.value || "",
-      inquiry: inquiryRef.current?.value || "",
-    };
-
     // 入力チェック
-    const validationErrors = validateInquiry(formData);
+    const validationErrors = validateForm();
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length > 0) return;
 
@@ -68,18 +78,27 @@ export default function ContactForm() {
     setModalContent("loading");
 
     try {
-      // ✅ reCAPTCHA は一旦スキップ
-      const emailRes = await axios.post("/api/email", formData);
+      const response = await fetch("/api/contacts/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: nameRef.current?.value || "",
+          email: emailRef.current?.value || "",
+          subject: subjectRef.current?.value || "",
+          message: messageRef.current?.value || "",
+        }),
+      });
 
-      if (emailRes.data.success) {
+      if (response.ok) {
         setModalContent("success");
 
         // フォーム初期化
         if (nameRef.current) nameRef.current.value = "";
-        if (companyRef.current) companyRef.current.value = "";
         if (emailRef.current) emailRef.current.value = "";
-        if (phoneRef.current) phoneRef.current.value = "";
-        if (inquiryRef.current) inquiryRef.current.value = "";
+        if (subjectRef.current) subjectRef.current.value = "";
+        if (messageRef.current) messageRef.current.value = "";
       } else {
         setModalContent("error");
       }
@@ -112,8 +131,7 @@ export default function ContactForm() {
           sx={{ textAlign: "justify", textJustify: "inter-word" }}
         >
           下記の送信フォームよりお問い合わせ可能です。<br />
-          ご質問・ご相談のある方はお気軽にお問い合わせください。<br />
-          またネット予約はこちらより２４時間受け付けております。<br />
+          ご質問・ご要望がある方はお気軽にお問い合わせください。
         </Typography>
 
         <Box
@@ -126,8 +144,9 @@ export default function ContactForm() {
         >
           <TextField
             inputRef={nameRef}
-            label="お名前*"
+            label="お名前"
             name="name"
+            required
             error={Boolean(errors.name)}
             helperText={errors.name}
             onChange={() => handleChange("name")}
@@ -135,32 +154,36 @@ export default function ContactForm() {
           />
           <TextField
             inputRef={emailRef}
-            label="メールアドレス*"
+            label="メールアドレス"
             name="email"
+            type="email"
+            required
             error={Boolean(errors.email)}
             helperText={errors.email}
             onChange={() => handleChange("email")}
             fullWidth
           />
           <TextField
-            inputRef={phoneRef}
-            label="電話番号"
-            name="phone"
-            error={Boolean(errors.phone)}
-            helperText={errors.phone}
-            onChange={() => handleChange("phone")}
+            inputRef={subjectRef}
+            label="件名"
+            name="subject"
+            required
+            error={Boolean(errors.subject)}
+            helperText={errors.subject}
+            onChange={() => handleChange("subject")}
             fullWidth
           />
           <TextField
-            inputRef={inquiryRef}
-            label="お問い合わせ内容*"
-            name="inquiry"
-            error={Boolean(errors.inquiry)}
-            helperText={errors.inquiry}
-            onChange={() => handleChange("inquiry")}
+            inputRef={messageRef}
+            label="お問い合わせ内容"
+            name="message"
+            required
+            error={Boolean(errors.message)}
+            helperText={errors.message}
+            onChange={() => handleChange("message")}
             fullWidth
             multiline
-            rows={4}
+            rows={5}
           />
         </Box>
 

@@ -140,6 +140,38 @@ class Inquiry(models.Model):
         return f"{self.name} - {self.email}"
 
 
+class ContactStatus(models.TextChoices):
+    NEW = 'NEW', '未対応'
+    IN_PROGRESS = 'IN_PROGRESS', '対応中'
+    RESOLVED = 'RESOLVED', '対応済み'
+    CLOSED = 'CLOSED', '完了'
+
+
+class Contact(models.Model):
+    id = models.AutoField(primary_key=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    name = models.CharField(max_length=255, verbose_name='お名前')
+    email = models.EmailField(verbose_name='メールアドレス')
+    subject = models.CharField(max_length=255, verbose_name='件名')
+    message = models.TextField(verbose_name='お問い合わせ内容')
+    status = models.CharField(
+        max_length=20,
+        choices=ContactStatus.choices,
+        default=ContactStatus.NEW,
+        verbose_name='対応状況'
+    )
+    admin_notes = models.TextField(blank=True, verbose_name='管理者メモ')
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'お問い合わせ'
+        verbose_name_plural = 'お問い合わせ'
+
+    def __str__(self):
+        return f"[{self.get_status_display()}] {self.subject} - {self.name}"
+
+
 class Blog(models.Model):
     id = models.AutoField(primary_key=True)
     created_at = models.DateTimeField(auto_now_add=True)
