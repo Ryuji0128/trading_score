@@ -42,6 +42,16 @@ export default function Footer() {
           }}
         >
           <Link
+            href="/terms"
+            color="inherit"
+            sx={{
+              textDecoration: "none",
+              "&:hover": { textDecoration: "underline" },
+            }}
+          >
+            利用規約
+          </Link>
+          <Link
             href="/privacy-policy"
             color="inherit"
             sx={{

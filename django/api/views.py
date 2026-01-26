@@ -1,8 +1,9 @@
 import logging
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.decorators import api_view, permission_classes, action, throttle_classes
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from .throttling import LoginRateThrottle, ToppsCardListThrottle, BurstThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
 from django.db.models import F
@@ -27,9 +28,11 @@ User = get_user_model()
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
 def login_view(request):
     """
     User login endpoint - returns JWT tokens
+    Rate limited to prevent brute force attacks
     """
     serializer = LoginSerializer(data=request.data)
     if serializer.is_valid():
@@ -259,6 +262,7 @@ class PlayerViewSet(viewsets.ReadOnlyModelViewSet):
 class ToppsCardViewSet(viewsets.ModelViewSet):
     """
     Topps NOW card operations - read for all, write for superuser only
+    Anti-scraping measures applied
     """
     queryset = ToppsCard.objects.all().select_related(
         'player', 'team', 'topps_set'
@@ -266,12 +270,33 @@ class ToppsCardViewSet(viewsets.ModelViewSet):
     serializer_class = ToppsCardSerializer
     pagination_class = None  # ページネーションを無効化
 
+    def get_throttles(self):
+        """一覧取得にはスクレイピング対策のスロットリングを適用"""
+        if self.action == 'list':
+            return [ToppsCardListThrottle(), BurstThrottle()]
+        return super().get_throttles()
+
     def get_permissions(self):
         # 読み取り（list, retrieve）は誰でもアクセス可能
         if self.action in ['list', 'retrieve']:
             return [AllowAny()]
         # 更新・削除はsuperuserのみ
         return [IsAuthenticated()]
+
+    def list(self, request, *args, **kwargs):
+        """一覧取得時にスクレイピング検出ログを記録"""
+        # 不審なアクセスの場合はログを記録
+        if getattr(request, 'suspicious_access', False):
+            logger.warning(
+                f"Suspicious topps-cards access from {self._get_client_ip(request)}"
+            )
+        return super().list(request, *args, **kwargs)
+
+    def _get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            return x_forwarded_for.split(',')[0].strip()
+        return request.META.get('REMOTE_ADDR', 'unknown')
 
     def update(self, request, *args, **kwargs):
         if not request.user.is_superuser:
