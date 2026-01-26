@@ -69,3 +69,4 @@ mysql/data/
 docker-compose.override.yml
 
 backups/*
+nginx/logs/*
