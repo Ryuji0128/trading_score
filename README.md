@@ -398,8 +398,111 @@ docker compose up -d --build
 docker compose up -d django
 ```
 
+## セキュリティ
+
+### Nginx セキュリティヘッダー
+
+`nginx/default.conf.template`で以下を設定済み:
+
+| ヘッダー | 説明 |
+|---------|------|
+| `X-Frame-Options: SAMEORIGIN` | クリックジャッキング対策 |
+| `X-Content-Type-Options: nosniff` | MIMEタイプスニッフィング防止 |
+| `X-XSS-Protection: 1; mode=block` | XSS攻撃防止 |
+| `Referrer-Policy: strict-origin-when-cross-origin` | リファラー制御 |
+| `Content-Security-Policy` | CSP（スクリプト・スタイル制御） |
+| `server_tokens off` | Nginxバージョン非表示 |
+
+### fail2ban
+
+SSH/Nginxへの不正アクセス対策:
+
+```bash
+# 設定ファイルをコピー
+sudo cp fail2ban/jail.local /etc/fail2ban/
+sudo cp fail2ban/filter.d/* /etc/fail2ban/filter.d/
+
+# 再起動
+sudo systemctl restart fail2ban
+
+# 状態確認
+sudo fail2ban-client status
+```
+
+設定内容:
+- SSH: 3回失敗で24時間BAN
+- Nginx: レート制限違反・ボット検出で1時間BAN
+
+### logwatch
+
+日次ログレポート:
+
+```bash
+# 設定ファイルをコピー
+sudo cp logwatch/logwatch.conf /etc/logwatch/conf/
+
+# テスト実行
+sudo logwatch --output stdout
+```
+
+## 運用スクリプト
+
+`scripts/`ディレクトリに運用スクリプトを配置:
+
+| スクリプト | 説明 |
+|-----------|------|
+| `renew-ssl.sh` | SSL証明書の更新 |
+| `backup-db.sh` | DBバックアップ（7日間保持） |
+| `monitor.sh` | サービス死活監視 |
+| `setup-monitoring.sh` | 監視環境セットアップ |
+
+### 初回セットアップ
+
+```bash
+cd ~/trading_score/scripts
+./setup-monitoring.sh
+```
+
+これにより以下のcronジョブが設定されます:
+- SSL更新: 毎日3:00
+- DBバックアップ: 毎日2:00
+- 死活監視: 5分ごと
+
+### 手動実行
+
+```bash
+# SSL証明書更新
+./scripts/renew-ssl.sh
+
+# DBバックアップ
+./scripts/backup-db.sh
+
+# 死活監視
+./scripts/monitor.sh
+```
+
 ## 注意事項
 
 - スクレイピングはToppsサイトのCloudflare対策のため、各リクエスト間に待機時間を設けています
 - 大量のカードを処理する場合は時間がかかります（1件あたり約7秒）
 - `.env` ファイルを変更した場合、`docker restart` ではなく `docker compose up -d` で再作成が必要です
+
+## 免責事項・利用規約
+
+### データについて
+
+- 本サイトで公開しているTopps NOWカードのデータは、個人が独自に収集・整理したものです
+- **Topps社、MLB、その他公式機関とは一切関係ありません**
+- データの正確性・完全性は保証しません
+- 最新・正確な情報は各公式サイトをご確認ください
+
+### 商標について
+
+- 「Topps」「Topps NOW」はTopps Company, Inc.の商標です
+- 「MLB」「Major League Baseball」はMLB Advanced Media, L.P.の商標です
+- その他、本サイトに掲載されている商標は各権利者に帰属します
+
+### 免責
+
+- 本サイトの利用により生じた損害について、運営者は一切の責任を負いません
+- 本サイトの内容は予告なく変更・削除される場合があります

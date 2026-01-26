@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { CopyProtection } from "@/components/CopyProtection";
 
 export const metadata: Metadata = {
   title: "Topps NOW カードデータ | MLB Note",
@@ -6,5 +7,9 @@ export const metadata: Metadata = {
 };
 
 export default function ToppsNowLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <CopyProtection>
+      {children}
+    </CopyProtection>
+  );
 }
