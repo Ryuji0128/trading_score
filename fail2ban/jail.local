@@ -4,6 +4,9 @@ findtime = 10m
 maxretry = 5
 banaction = iptables-multiport
 
+# Docker Nginx ログのパス（ホストにマウント）
+nginx_log_path = /home/ubuntu/trading_score/nginx/logs
+
 [sshd]
 enabled = true
 port = ssh
@@ -16,19 +19,27 @@ bantime = 24h
 enabled = true
 filter = nginx-http-auth
 port = http,https
-logpath = /var/log/nginx/error.log
+logpath = %(nginx_log_path)s/error.log
 maxretry = 5
 
 [nginx-limit-req]
 enabled = true
 filter = nginx-limit-req
 port = http,https
-logpath = /var/log/nginx/error.log
+logpath = %(nginx_log_path)s/error.log
 maxretry = 10
 
 [nginx-botsearch]
 enabled = true
 filter = nginx-botsearch
 port = http,https
-logpath = /var/log/nginx/access.log
+logpath = %(nginx_log_path)s/access.log
 maxretry = 2
+
+[nginx-honeypot]
+enabled = true
+filter = nginx-botsearch
+port = http,https
+logpath = %(nginx_log_path)s/honeypot.log
+maxretry = 1
+bantime = 24h
