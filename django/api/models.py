@@ -155,6 +155,7 @@ class Blog(models.Model):
         related_name='blogs'
     )
     published = models.BooleanField(default=True)
+    view_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         ordering = ['-created_at']

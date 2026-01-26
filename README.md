@@ -1,11 +1,12 @@
-# MLB Trading Card Database (Topps NOW)
+# MLB Note
 
-MLBトレーディングカード（Topps NOW）のデータベースアプリケーション。
+個人的にMLBの気になるデータをまとめた個人サイト。
 
 ## 概要
 
-Topps NOW カードの情報を管理・閲覧するためのフルスタックアプリケーション。
-- **フロントエンド**: Next.js 15 (App Router) + React 19 + MUI
+Topps NOW カード情報、WBCデータ、MLB順位表・試合結果などを一覧できるフルスタックアプリケーション。
+
+- **フロントエンド**: Next.js 15 (App Router) + React 19 + MUI + SWR
 - **バックエンド**: Django REST Framework + MySQL 8.0
 - **インフラ**: Docker Compose + Nginx
 
@@ -34,7 +35,7 @@ docker compose up -d
 docker compose exec django python manage.py migrate
 
 # 5. ブラウザでアクセス
-# http://localhost:80 (Nginx経由)
+# http://192.168.11.22 (Nginx経由)
 ```
 
 ## Docker環境の構成
@@ -57,40 +58,115 @@ docker compose exec django python manage.py migrate
 
 ## 主要機能
 
-### カードデータ管理
+### ページ一覧
 
-- Topps NOW カード情報の登録・編集・削除
+| パス | 内容 |
+|------|------|
+| `/` | TOPページ（ブログ最新記事・最新Toppsカード） |
+| `/topps-now` | Topps NOW カード一覧・管理（DataGrid） |
+| `/blog` | ブログ記事一覧 |
+| `/blog/[id]` | ブログ記事詳細（認証ユーザーのみ編集可） |
+| `/wbc` | WBCトーナメントデータ |
+| `/games` | 直近7日間のMLB試合結果 |
+| `/teams` | MLBチーム一覧 |
+| `/teams/[id]` | チーム詳細・ロースター |
+| `/stats` | MLB順位表（リーグ・シーズン切替） |
+| `/description` | このサイトについて |
+| `/contact` | お問い合わせ |
+| `/login` | ログイン |
+
+### Topps NOW カード管理
+
+- カード情報の登録・編集（DataGrid上でインライン編集）
 - 選手・チーム情報との連携
 - 発行日（release_date）の自動取得
+- MLB Game IDとの紐付け
 
-### データスクレイピング
+### WBC データ
 
-Topps公式サイトからカード情報を自動取得するDjango管理コマンド:
+- WBCトーナメント情報の表示
+- 出場選手リスト
 
-```bash
-# Topps NOW アーカイブからカード情報をスクレイピング
-docker compose exec django python manage.py toppsNow_archive --max-cards 100
+### ブログ
 
-# 商品URLを生成
-docker compose exec django python manage.py generate_product_urls
-
-# 発行日をスクレイピング
-docker compose exec django python manage.py scrape_release_dates --limit 100 --delay 5
-```
+- 記事の作成・編集（認証ユーザーのみ）
+- Markdown対応
 
 ### MLB Stats API 連携
 
-MLB公式API（MLB-StatsAPI）を使用して選手成績・試合情報を取得:
+MLB公式API（statsapi.mlb.com）からリアルタイムデータを取得:
+- 順位表（レギュラーシーズン）
+- 直近の試合結果
+- チーム一覧・ロースター
+
+## Django管理コマンド
+
+### 初期セットアップ
 
 ```bash
-# 選手名からMLB Player IDを取得・紐付け
+# MLBチーム情報の同期（30チーム）
+docker compose exec django python manage.py sync_mlb_teams
+```
+
+### データ同期
+
+```bash
+# Topps NOWカード情報のスクレイピング
+docker compose exec django python manage.py toppsNow_archive --max-cards 100
+
+# 選手名→MLB Player ID紐付け
 docker compose exec django python manage.py sync_mlb_players --limit 0
 
 # 選手の打撃・投球成績を取得
 docker compose exec django python manage.py fetch_player_stats --season 2025 --limit 0
 
-# カードの試合日からMLB Game IDを取得・紐付け
+# 選手の国籍を取得
+docker compose exec django python manage.py fetch_player_nationality --limit 0
+
+# カードの発行日からMLB Game IDを紐付け
 docker compose exec django python manage.py fetch_game_ids --limit 0
+
+# WBCトーナメントデータ取得
+docker compose exec django python manage.py fetch_wbc_data
+
+# WBC出場選手の紐付け
+docker compose exec django python manage.py fetch_wbc_players
+```
+
+### URL管理
+
+```bash
+# 商品URLを生成
+docker compose exec django python manage.py generate_product_urls
+
+# 全URLを再生成
+docker compose exec django python manage.py regenerate_product_urls
+
+# 長いURLを短縮
+docker compose exec django python manage.py shorten_product_urls
+
+# 404 URLを修正
+docker compose exec django python manage.py fix_broken_urls
+```
+
+### スクレイピング
+
+```bash
+# カード画像URLを取得
+docker compose exec django python manage.py scrape_card_images
+
+# 発行日をスクレイピング
+docker compose exec django python manage.py scrape_release_dates --limit 100 --delay 5
+```
+
+### メンテナンス
+
+```bash
+# タイトル整理
+docker compose exec django python manage.py clean_topps_titles
+
+# カード→チーム紐付け
+docker compose exec django python manage.py update_card_teams
 ```
 
 ### 共通オプション
@@ -101,6 +177,102 @@ docker compose exec django python manage.py fetch_game_ids --limit 0
 #   --force     既存データも上書き
 #   --delay N   リクエスト間隔（秒）
 ```
+
+## API エンドポイント
+
+| メソッド | パス | 説明 |
+|---------|------|------|
+| GET | /api/topps-cards/ | カード一覧取得 |
+| GET | /api/topps-cards/{id}/ | カード詳細取得 |
+| GET | /api/players/{id}/ | 選手詳細取得（成績含む） |
+| GET | /api/teams/ | チーム一覧 |
+| GET | /api/blogs/ | ブログ記事一覧 |
+| GET | /api/blogs/{id}/ | ブログ記事詳細 |
+| GET | /api/wbc-tournaments/ | WBCトーナメント一覧 |
+| GET | /api/mlb/game/ | MLB Game ID取得（team_id, date指定） |
+| POST | /api/auth/login/ | ログイン（JWT取得） |
+| POST | /api/auth/register/ | ユーザー登録 |
+| POST | /api/auth/token/refresh/ | トークンリフレッシュ |
+| GET | /api/auth/me/ | ログインユーザー情報 |
+| POST | /api/inquiries/ | お問い合わせ送信 |
+
+## ディレクトリ構成
+
+```
+trading_score/
+├── docker-compose.yml
+├── nginx/
+│   └── default.conf.template
+├── mysql/
+│   └── data/                      # MySQLデータ（gitignore）
+├── django/
+│   ├── Dockerfile
+│   ├── .env
+│   ├── manage.py
+│   ├── config/                    # Django設定
+│   └── api/
+│       ├── models.py              # データモデル
+│       ├── views.py               # APIエンドポイント
+│       ├── serializers.py
+│       ├── urls.py
+│       └── management/commands/   # 管理コマンド（21個）
+└── next/
+    ├── Dockerfile
+    ├── .env
+    └── src/
+        ├── app/                   # ページ（App Router）
+        │   ├── page.tsx           # TOPページ
+        │   ├── layout.tsx         # 共通レイアウト
+        │   ├── topps-now/         # Topps NOWカード管理
+        │   ├── blog/              # ブログ
+        │   ├── wbc/               # WBCデータ
+        │   ├── games/             # 試合結果
+        │   ├── teams/             # チーム一覧・詳細
+        │   ├── stats/             # 順位表
+        │   ├── description/       # サイト説明
+        │   ├── contact/           # お問い合わせ
+        │   └── login/             # ログイン
+        ├── components/            # 共通コンポーネント
+        │   ├── MLBLayout.tsx      # メインレイアウト
+        │   ├── Header.tsx
+        │   ├── Footer.tsx
+        │   └── MLBSidebar.tsx
+        └── lib/                   # 共通ユーティリティ
+            ├── constants.ts       # 定数（カラー、表示件数、API URL等）
+            ├── auth.ts            # 認証ヘルパー（トークン管理）
+            ├── utils.ts           # 日付フォーマット等
+            ├── fetcher.ts         # SWR用fetcher関数
+            └── types/             # TypeScript型定義
+                ├── index.ts
+                ├── api.ts
+                ├── topps.ts
+                ├── wbc.ts
+                ├── stats.ts
+                └── blog.ts
+```
+
+## 技術スタック
+
+### フロントエンド
+- TypeScript
+- React 19
+- Next.js 15 (App Router)
+- MUI (Material UI) + MUI X DataGrid
+- SWR（データフェッチ・キャッシュ）
+
+### バックエンド
+- Python 3.11
+- Django 5.0
+- Django REST Framework
+- Simple JWT（認証）
+- Selenium（スクレイピング用）
+
+### データベース
+- MySQL 8.0
+
+### インフラ
+- Docker / Docker Compose
+- Nginx（リバースプロキシ）
 
 ## 開発コマンド
 
@@ -114,135 +286,19 @@ docker compose down
 # ログ確認
 docker compose logs -f django
 
-# Djangoマイグレーション作成
+# Djangoマイグレーション
 docker compose exec django python manage.py makemigrations
-
-# Djangoマイグレーション適用
 docker compose exec django python manage.py migrate
 
-# Django管理シェル
-docker compose exec django python manage.py shell
-
-# コンテナ再ビルド
+# コンテナ再ビルド（コード変更後）
 docker compose up -d --build
+
+# 環境変数変更後（.env変更時はupで再作成が必要）
+docker compose up -d django
 ```
-
-## ディレクトリ構成
-
-```
-trading_score/
-├── docker-compose.yml
-├── nginx/
-│   └── default.conf.template
-├── mysql/
-│   └── data/                   # MySQLデータ（gitignore）
-├── django/
-│   ├── Dockerfile
-│   ├── .env
-│   ├── manage.py
-│   ├── config/                 # Django設定
-│   ├── api/
-│   │   ├── models.py           # データモデル
-│   │   ├── views.py            # APIエンドポイント
-│   │   ├── serializers.py
-│   │   └── management/
-│   │       └── commands/       # 管理コマンド
-│   │           ├── toppsNow_archive.py
-│   │           ├── scrape_release_dates.py
-│   │           └── ...
-│   └── json/                   # 初期データ
-└── next/
-    ├── Dockerfile
-    ├── .env
-    └── src/
-        ├── app/                # ページ
-        │   └── topps-now/
-        └── components/
-```
-
-## データモデル
-
-### ToppsCard（カード）
-
-| フィールド | 型 | 説明 |
-|-----------|------|------|
-| topps_set | FK | カードセット |
-| player | FK | 選手 |
-| team | FK | チーム |
-| card_number | CharField | カード番号 |
-| title | CharField | タイトル |
-| total_print | Integer | 発行枚数 |
-| image_url | CharField | 画像URL |
-| product_url | CharField | Topps商品ページURL（短） |
-| product_url_long | CharField | Topps商品ページURL（長） |
-| release_date | DateField | 発行日 |
-| mlb_game_id | Integer | MLB Game ID（試合ページへのリンク用） |
-
-### Player（選手）
-
-| フィールド | 型 | 説明 |
-|-----------|------|------|
-| full_name | CharField | 氏名 |
-| first_name | CharField | 名 |
-| last_name | CharField | 姓 |
-| team | FK | 所属チーム |
-| jersey_number | Integer | 背番号 |
-| position | CharField | ポジション |
-| mlb_player_id | Integer | MLB Stats API 選手ID |
-
-### PlayerStats（選手成績）
-
-| フィールド | 型 | 説明 |
-|-----------|------|------|
-| player | FK | 選手 |
-| season | Integer | シーズン年 |
-| stat_type | CharField | 成績タイプ（hitting/pitching） |
-| games | Integer | 試合数 |
-| batting_avg | Decimal | 打率 |
-| home_runs | Integer | 本塁打 |
-| rbi | Integer | 打点 |
-| era | Decimal | 防御率 |
-| wins | Integer | 勝利数 |
-| strikeouts | Integer | 奪三振 |
-| ... | | その他多数の成績フィールド |
-
-### 関連モデル
-
-- **ToppsSet**: カードセット（年度・シリーズ）
-- **Team**: MLBチーム（30チーム、mlb_team_id連携）
-- **ToppsCardVariant**: カードバリエーション（パラレル等）
-
-## API エンドポイント
-
-| メソッド | パス | 説明 |
-|---------|------|------|
-| GET | /api/topps-cards/ | カード一覧取得 |
-| GET | /api/topps-cards/{id}/ | カード詳細取得 |
-| GET | /api/players/{id}/ | 選手詳細取得（成績含む） |
-| GET | /api/mlb/game/ | MLB Game ID取得（team_id, date指定） |
-
-## 技術スタック
-
-### フロントエンド
-- TypeScript
-- React 19
-- Next.js 15 (App Router)
-- MUI (Material UI)
-
-### バックエンド
-- Python 3.11
-- Django 5.0
-- Django REST Framework
-- Selenium（スクレイピング用）
-
-### データベース
-- MySQL 8.0
-
-### インフラ
-- Docker / Docker Compose
-- Nginx
 
 ## 注意事項
 
 - スクレイピングはToppsサイトのCloudflare対策のため、各リクエスト間に待機時間を設けています
 - 大量のカードを処理する場合は時間がかかります（1件あたり約7秒）
+- `.env` ファイルを変更した場合、`docker restart` ではなく `docker compose up -d` で再作成が必要です

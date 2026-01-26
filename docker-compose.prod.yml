@@ -4,23 +4,21 @@ services:
     container_name: mysql_db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-app_db}
-      MYSQL_USER: ${MYSQL_USER:-app_user}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-app_pass}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - ./mysql/data:/var/lib/mysql
-    ports:
-      - "3306:3306"  # デバッグ用
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 60s
 
   django:
-    build: ./django
+    image: ghcr.io/ryuji0128/trading_score-django:latest
     container_name: django_app
     ports:
       - "8000:8000"
@@ -30,11 +28,9 @@ services:
       mysql:
         condition: service_healthy
     restart: unless-stopped
-    volumes:
-      - ./django:/app
 
   next:
-    build: ./next
+    image: ghcr.io/ryuji0128/trading_score-next:latest
     container_name: next_app
     ports:
       - "2999:3000"
@@ -60,3 +56,6 @@ services:
     depends_on:
       - next
       - django
+
+volumes:
+  mysql_data:

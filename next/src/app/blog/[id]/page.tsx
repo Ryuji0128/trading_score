@@ -1,182 +1,71 @@
-"use client";
+import { Metadata } from "next";
+import BlogDetailContent from "./BlogDetailContent";
 
-import { useState, useEffect } from "react";
-import { Box, Container, Typography, Paper, Chip, CircularProgress, Button } from "@mui/material";
-import { useRouter, useParams } from "next/navigation";
-import MLBLayout from "@/components/MLBLayout";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import type { Blog } from "@/lib/types";
-import { getAccessToken, getAuthHeaders } from "@/lib/auth";
-import { formatDateJP } from "@/lib/utils";
+const INTERNAL_API_URL = process.env.INTERNAL_API_URL || "http://django_app:8000/api";
 
-export default function BlogDetailPage() {
-  const [blog, setBlog] = useState<Blog | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isSuperuser, setIsSuperuser] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const router = useRouter();
-  const params = useParams();
-  const id = params.id;
+interface BlogData {
+  id: number;
+  title: string;
+  content: string;
+  image_url: string | null;
+}
 
-  useEffect(() => {
-    setMounted(true);
-    if (id) {
-      fetchBlog();
-      checkUserPermission();
-    }
-  }, [id]);
-
-  const fetchBlog = async () => {
-    try {
-      const response = await fetch(`/api/blogs/${id}/`);
-      if (response.ok) {
-        const data = await response.json();
-        setBlog(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch blog:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkUserPermission = async () => {
-    try {
-      if (!getAccessToken()) return;
-      const response = await fetch('/api/auth/me/', { headers: getAuthHeaders() });
-      if (response.ok) {
-        const user = await response.json();
-        setIsSuperuser(user.is_superuser || false);
-      }
-    } catch (error) {
-      console.error('Failed to check user permission:', error);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm('このブログを削除しますか?')) return;
-
-    try {
-      const response = await fetch(`/api/blogs/${id}/`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-
-      if (response.ok) {
-        router.push('/blog');
-      } else {
-        alert('削除に失敗しました');
-      }
-    } catch (error) {
-      console.error('Failed to delete blog:', error);
-      alert('削除に失敗しました');
-    }
-  };
-
-
-  if (loading) {
-    return (
-      <MLBLayout activePath="/blog">
-        <Container maxWidth="md" sx={{ py: 8 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <CircularProgress sx={{ color: '#2e7d32' }} />
-          </Box>
-        </Container>
-      </MLBLayout>
-    );
+async function fetchBlog(id: string): Promise<BlogData | null> {
+  try {
+    const res = await fetch(`${INTERNAL_API_URL}/blogs/${id}/`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
   }
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const blog = await fetchBlog(id);
 
   if (!blog) {
-    return (
-      <MLBLayout activePath="/blog">
-        <Container maxWidth="md" sx={{ py: 8 }}>
-          <Typography variant="h6" sx={{ textAlign: 'center', color: 'text.secondary' }}>
-            ブログが見つかりません
-          </Typography>
-        </Container>
-      </MLBLayout>
-    );
+    return {
+      title: "ブログが見つかりません | MLB Note",
+    };
   }
 
-  return (
-    <MLBLayout activePath="/blog">
-      <Container maxWidth="md" sx={{ py: 8 }}>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={() => router.push('/blog')}
-          sx={{ mb: 3 }}
-        >
-          ブログ一覧に戻る
-        </Button>
+  const description = blog.content.slice(0, 120) + (blog.content.length > 120 ? "..." : "");
+  const pageUrl = `http://192.168.11.22/blog/${blog.id}`;
 
-        <Paper sx={{ p: 4 }}>
-          {blog.image_url && (
-            <Box
-              component="img"
-              src={blog.image_url}
-              alt={blog.title}
-              sx={{
-                width: '100%',
-                height: 'auto',
-                maxHeight: 400,
-                objectFit: 'cover',
-                borderRadius: 2,
-                mb: 3,
-              }}
-            />
-          )}
+  return {
+    title: `${blog.title} | MLB Note`,
+    description,
+    openGraph: {
+      title: blog.title,
+      description,
+      url: pageUrl,
+      siteName: "MLB Note",
+      type: "article",
+      ...(blog.image_url && {
+        images: [{ url: blog.image_url, width: 1200, height: 630, alt: blog.title }],
+      }),
+    },
+    twitter: {
+      card: blog.image_url ? "summary_large_image" : "summary",
+      title: blog.title,
+      description,
+      ...(blog.image_url && { images: [blog.image_url] }),
+    },
+  };
+}
 
-          <Typography variant="h3" sx={{ fontWeight: 800, mb: 2 }}>
-            {blog.title}
-          </Typography>
-
-          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
-            <Chip
-              label={blog.author_name || '管理者'}
-              size="small"
-              sx={{ bgcolor: '#e8f5e9', color: '#2e7d32' }}
-            />
-            <Chip
-              label={formatDateJP(blog.created_at)}
-              size="small"
-              variant="outlined"
-            />
-          </Box>
-
-          <Typography
-            variant="body1"
-            sx={{
-              lineHeight: 2,
-              whiteSpace: 'pre-wrap',
-              mb: 4,
-            }}
-          >
-            {blog.content}
-          </Typography>
-
-          {mounted && isSuperuser && (
-            <Box sx={{ display: 'flex', gap: 2, borderTop: '1px solid #e0e0e0', pt: 3 }}>
-              <Button
-                variant="outlined"
-                startIcon={<EditIcon />}
-                onClick={() => router.push(`/blog/${id}/edit`)}
-              >
-                編集
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={handleDelete}
-              >
-                削除
-              </Button>
-            </Box>
-          )}
-        </Paper>
-      </Container>
-    </MLBLayout>
-  );
+export default async function BlogDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <BlogDetailContent id={id} />;
 }

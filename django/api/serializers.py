@@ -102,8 +102,8 @@ class BlogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Blog
-        fields = ['id', 'title', 'content', 'image_url', 'author', 'author_name', 'author_email', 'published', 'created_at', 'updated_at']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'author_name', 'author_email']
+        fields = ['id', 'title', 'content', 'image_url', 'author', 'author_name', 'author_email', 'published', 'view_count', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'author_name', 'author_email', 'view_count']
 
 
 # JWT Token Serializers

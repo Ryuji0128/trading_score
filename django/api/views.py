@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
+from django.db.models import F
 
 logger = logging.getLogger(__name__)
 from .models import (
@@ -161,10 +162,8 @@ class BlogViewSet(viewsets.ModelViewSet):
     serializer_class = BlogSerializer
 
     def get_permissions(self):
-        # 読み取り（list, retrieve）は誰でもアクセス可能
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'increment_view']:
             return [AllowAny()]
-        # 作成・更新・削除はsuperuserのみ
         return [IsAuthenticated()]
 
     def create(self, request, *args, **kwargs):
@@ -203,6 +202,13 @@ class BlogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         return super().destroy(request, *args, **kwargs)
+
+    @action(detail=True, methods=['post'], permission_classes=[AllowAny])
+    def increment_view(self, request, pk=None):
+        blog = self.get_object()
+        Blog.objects.filter(pk=blog.pk).update(view_count=F('view_count') + 1)
+        blog.refresh_from_db()
+        return Response({'view_count': blog.view_count})
 
 
 @api_view(['GET'])

@@ -9,7 +9,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ryuji0128/seta-hp
+  DJANGO_IMAGE: ryuji0128/trading_score-django
+  NEXT_IMAGE: ryuji0128/trading_score-next
 
 jobs:
   build-and-push:
@@ -48,19 +49,31 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and push Docker image
+      # Build and push Django image
+      - name: Build and push Django image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./django
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.DJANGO_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.DJANGO_IMAGE }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and push Next.js image
+      - name: Build and push Next.js image
         uses: docker/build-push-action@v5
         with:
           context: ./next
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.NEXT_IMAGE }}:latest
+            ${{ env.REGISTRY }}/${{ env.NEXT_IMAGE }}:${{ github.sha }}
           cache-from: type=gha
+          cache-to: type=gha,mode=max
           build-args: |
-            DATABASE_URL=mysql://test:test@localhost:3306/test
             AUTH_SECRET=${{ secrets.AUTH_SECRET }}
-            # NEXTAUTH_URL=https://setaseisakusyo.com
 
   deploy:
     needs: build-and-push
@@ -82,9 +95,9 @@ jobs:
           script: |
             set -e
 
-            echo "Deploying Seta-HP..."
+            echo "Deploying trading_score..."
 
-            cd ~/seta-hp
+            cd ~/trading_score
 
             echo "Pulling latest code..."
             git fetch origin main
@@ -93,17 +106,20 @@ jobs:
             echo "Logging in to GitHub Container Registry..."
             echo "${GH_PAT}" | docker login ghcr.io -u "${GH_USERNAME}" --password-stdin
 
-            echo "Pulling latest image..."
-            docker compose -f docker-compose.yml pull
+            echo "Pulling latest images..."
+            docker compose -f docker-compose.prod.yml pull
 
             echo "Starting containers..."
-            docker compose -f docker-compose.yml up -d
+            docker compose -f docker-compose.prod.yml up -d
 
-            echo "Waiting for containers to be ready..."
-            sleep 10
+            echo "Waiting for MySQL to be ready..."
+            sleep 15
 
-            echo "Running database migrations..."
-            docker compose exec -T next npx prisma migrate deploy || echo "Migration skipped or no pending migrations"
+            echo "Running Django migrations..."
+            docker compose -f docker-compose.prod.yml exec -T django python manage.py migrate --noinput || echo "Migration failed or no pending migrations"
+
+            echo "Collecting static files..."
+            docker compose -f docker-compose.prod.yml exec -T django python manage.py collectstatic --noinput || echo "Static files collection skipped"
 
             echo "Cleaning up old images..."
             docker image prune -f
