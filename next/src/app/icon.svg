@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- カード背景 -->
+  <rect x="2" y="1" width="28" height="30" rx="3" ry="3" fill="#1a472a"/>
+
+  <!-- カード内側フレーム -->
+  <rect x="4" y="3" width="24" height="26" rx="2" ry="2" fill="#ffffff"/>
+
+  <!-- 写真エリア（緑のグラデーション） -->
+  <rect x="6" y="5" width="20" height="16" rx="1" ry="1" fill="#2e7d32"/>
+
+  <!-- 野球ボール -->
+  <circle cx="16" cy="13" r="5" fill="#ffffff"/>
+  <path d="M12 10 Q16 13 12 16" fill="none" stroke="#c62828" stroke-width="1" stroke-linecap="round"/>
+  <path d="M20 10 Q16 13 20 16" fill="none" stroke="#c62828" stroke-width="1" stroke-linecap="round"/>
+
+  <!-- テキストライン -->
+  <rect x="6" y="23" width="20" height="2" rx="1" fill="#1a472a"/>
+  <rect x="8" y="26" width="16" height="1.5" rx="0.5" fill="#1a472a" opacity="0.5"/>
+</svg>

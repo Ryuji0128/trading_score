@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
+    'django_apscheduler',
     'api',
 ]
 
@@ -226,3 +227,9 @@ LOGGING = {
         },
     },
 }
+
+# =============================================================================
+# APScheduler Configuration
+# =============================================================================
+APSCHEDULER_DATETIME_FORMAT = "N j, Y, f:s a"
+APSCHEDULER_RUN_NOW_TIMEOUT = 25  # Seconds

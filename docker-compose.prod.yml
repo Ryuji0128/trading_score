@@ -43,6 +43,17 @@ services:
       - django
     restart: unless-stopped
 
+  scheduler:
+    image: ghcr.io/ryuji0128/trading_score-django:latest
+    container_name: scheduler
+    env_file:
+      - ./django/.env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    command: python manage.py run_scheduler --hour 7 --minute 0
+
   nginx:
     image: nginx:latest
     container_name: nginx_proxy

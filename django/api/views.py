@@ -10,14 +10,14 @@ from django.db.models import F
 
 logger = logging.getLogger(__name__)
 from .models import (
-    Account, Session, VerificationToken, News, Inquiry, Blog,
+    Account, Session, VerificationToken, News, Inquiry, Blog, Contact,
     Team, Player, PlayerStats, ToppsSet, ToppsCard, ToppsCardVariant,
     WBCTournament, WBCGame, WBCRosterEntry
 )
 from .serializers import (
     UserSerializer, UserCreateSerializer, UserUpdateSerializer,
     AccountSerializer, SessionSerializer, VerificationTokenSerializer,
-    NewsSerializer, InquirySerializer, BlogSerializer,
+    NewsSerializer, InquirySerializer, BlogSerializer, ContactSerializer,
     LoginSerializer, ToppsCardSerializer, PlayerSerializer, TeamSerializer,
     WBCTournamentListSerializer, WBCTournamentDetailSerializer,
     WBCRosterEntrySerializer
@@ -155,6 +155,28 @@ class InquiryViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response({'message': 'お問い合わせが正常に削除されました'}, status=status.HTTP_200_OK)
+
+
+class ContactViewSet(viewsets.ModelViewSet):
+    """
+    お問い合わせ管理 - 投稿は誰でも可能、閲覧・管理は管理者のみ
+    """
+    queryset = Contact.objects.all()
+    serializer_class = ContactSerializer
+
+    def get_permissions(self):
+        if self.action == 'create':
+            return [AllowAny()]
+        return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(
+            {'message': 'お問い合わせを受け付けました。'},
+            status=status.HTTP_201_CREATED
+        )
 
 
 class BlogViewSet(viewsets.ModelViewSet):

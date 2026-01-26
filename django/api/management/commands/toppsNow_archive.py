@@ -58,12 +58,21 @@ class Command(BaseCommand):
         headless = options.get('headless', True)
         custom_url = options['url']
 
-        # Chrome設定（Cloudflare対策を含む）
+        # Chrome設定（Docker環境およびCloudflare対策を含む）
         chrome_options = Options()
         chrome_options.add_argument('--headless=new')  # 新しいheadlessモード
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
         chrome_options.add_argument('--disable-gpu')
+
+        # Docker環境で必要な追加オプション
+        chrome_options.add_argument('--remote-debugging-port=9222')
+        chrome_options.add_argument('--disable-software-rasterizer')
+        chrome_options.add_argument('--window-size=1920,1080')
+        chrome_options.add_argument('--single-process')
+        chrome_options.add_argument('--disable-extensions')
+        chrome_options.add_argument('--disable-setuid-sandbox')
+
         chrome_options.add_argument('--disable-blink-features=AutomationControlled')  # 自動化検出を無効化
         chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 

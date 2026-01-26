@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    User, Account, Session, VerificationToken, News, Inquiry, Blog,
+    User, Account, Session, VerificationToken, News, Inquiry, Blog, Contact,
     Team, Player, ToppsSet, ToppsCard, ToppsCardVariant
 )
 
@@ -44,6 +44,27 @@ class InquiryAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'phone', 'created_at')
     search_fields = ('name', 'email')
     ordering = ('-created_at',)
+
+
+@admin.register(Contact)
+class ContactAdmin(admin.ModelAdmin):
+    list_display = ('subject', 'name', 'email', 'status', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('name', 'email', 'subject', 'message')
+    ordering = ('-created_at',)
+    readonly_fields = ('name', 'email', 'subject', 'message', 'created_at', 'updated_at')
+    fieldsets = (
+        ('お問い合わせ内容', {
+            'fields': ('name', 'email', 'subject', 'message', 'created_at')
+        }),
+        ('対応状況', {
+            'fields': ('status', 'admin_notes', 'updated_at')
+        }),
+    )
+
+    def has_add_permission(self, request):
+        # 管理画面からの追加は不可（フロントからのみ受付）
+        return False
 
 
 @admin.register(Blog)
