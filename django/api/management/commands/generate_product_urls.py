@@ -1,5 +1,21 @@
+import re
+import unicodedata
+
 from django.core.management.base import BaseCommand
 from api.models import ToppsCard
+
+
+def make_slug(text):
+    """テキストをURL用のスラッグに変換（アクセント文字をASCIIに変換）"""
+    slug = text.lower()
+    # アクセント付き文字をASCIIに変換（í→i, é→e, ñ→n など）
+    slug = unicodedata.normalize('NFKD', slug)
+    slug = slug.encode('ascii', 'ignore').decode('ascii')
+    slug = slug.replace('.', '')  # ドットを削除
+    slug = re.sub(r'\s+', '-', slug)
+    slug = re.sub(r'-+', '-', slug)
+    slug = slug.strip('-')
+    return slug
 
 
 class Command(BaseCommand):
@@ -28,14 +44,18 @@ class Command(BaseCommand):
         limit = options['limit']
         force = options['force']
 
-        # 対象カードを取得
+        # 対象カードを取得（発行日がないカード、TEAMSETを除外）
         if force:
-            cards = ToppsCard.objects.filter(title__isnull=False).exclude(title='')
+            cards = ToppsCard.objects.filter(
+                title__isnull=False,
+                release_date__isnull=True
+            ).exclude(title='').exclude(card_number__icontains='teamset')
         else:
             cards = ToppsCard.objects.filter(
                 title__isnull=False,
-                product_url=''
-            ).exclude(title='')
+                product_url='',
+                release_date__isnull=True
+            ).exclude(title='').exclude(card_number__icontains='teamset')
 
         if limit > 0:
             cards = cards[:limit]
@@ -45,16 +65,22 @@ class Command(BaseCommand):
 
         updated = 0
         for card in cards:
-            url = card.generate_product_url()
+            # 選手名-2025-mlb-topps-now®-card-カード番号 の形式でURL生成
+            player_name = make_slug(card.player.full_name)
+            card_num = card.card_number.lower()
+            short_url = f"https://www.topps.com/products/{player_name}-2025-mlb-topps-now%C2%AE-card-{card_num}"
+            long_url = f"https://www.topps.com/products/{player_name}-2025-mlb-topps-now%C2%AE-card-{card_num}-look-for-auto-relics"
 
             if dry_run:
                 self.stdout.write(f'[DRY RUN] カード #{card.card_number}:')
-                self.stdout.write(f'  タイトル: {card.title}')
-                self.stdout.write(f'  生成URL: {url}')
+                self.stdout.write(f'  選手名: {card.player.full_name}')
+                self.stdout.write(f'  短いURL: {short_url}')
+                self.stdout.write(f'  長いURL: {long_url}')
                 self.stdout.write('')
             else:
-                card.product_url = url
-                card.save(update_fields=['product_url'])
+                card.product_url = short_url
+                card.product_url_long = long_url
+                card.save(update_fields=['product_url', 'product_url_long'])
                 updated += 1
                 if updated % 100 == 0:
                     self.stdout.write(f'{updated}件更新済み...')
