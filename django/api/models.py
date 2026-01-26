@@ -466,6 +466,7 @@ class ToppsCard(models.Model):
 
         def make_slug(text):
             slug = text.lower()
+            slug = slug.replace('.', '')  # ドットを削除
             slug = re.sub(r'\s*/\s*', '-', slug)
             slug = re.sub(r'\s*-\s*', '-', slug)
             slug = re.sub(r'\s+', '-', slug)

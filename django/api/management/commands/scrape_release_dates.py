@@ -93,8 +93,8 @@ class Command(BaseCommand):
         for i, card in enumerate(cards, 1):
             self.stdout.write(f"\n[{i}/{total}] カード #{card.card_number}")
 
-            # まずproduct_urlを試す
-            url = card.product_url
+            # 長いURL（product_url_long）を使用
+            url = card.product_url_long if card.product_url_long else card.product_url
             self.stdout.write(f"  URL: {url}")
 
             driver = None
@@ -115,14 +115,6 @@ class Command(BaseCommand):
                 time.sleep(delay)  # Cloudflareチャレンジ待ち
 
                 release_date = self.extract_release_date(driver)
-
-                # 見つからない場合はproduct_url_longを試す
-                if not release_date and card.product_url_long and card.product_url_long != card.product_url:
-                    self.stdout.write(f"  短いURLで見つからず、長いURLを試行...")
-                    self.stdout.write(f"  URL (long): {card.product_url_long}")
-                    driver.get(card.product_url_long)
-                    time.sleep(delay)
-                    release_date = self.extract_release_date(driver)
 
                 if release_date:
                     self.stdout.write(self.style.SUCCESS(f"  発行日: {release_date}"))
