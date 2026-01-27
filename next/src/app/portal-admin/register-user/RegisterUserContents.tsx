@@ -68,8 +68,8 @@ export default function RegisterUserContents() {
         users: User[];
       }>("/api/user");
       setUsers(response.data.users);
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
+    } catch {
+      // Failed to fetch users
     }
   };
 
@@ -85,7 +85,6 @@ export default function RegisterUserContents() {
       password,
     });
     if (!validationResult.success) {
-      console.error(validationResult);
       setErrors(
         validationResult.error.errors.reduce(
           (acc, error) => ({
@@ -111,8 +110,8 @@ export default function RegisterUserContents() {
       if (passwordRef.current) passwordRef.current.value = "";
       setSelectedRole("VIEWER");
       fetchUsers();
-    } catch (error) {
-      console.error("Failed to add user:", error);
+    } catch {
+      // Failed to add user
     }
   };
 
@@ -123,8 +122,8 @@ export default function RegisterUserContents() {
         data: { id },
       });
       fetchUsers();
-    } catch (error) {
-      console.error("Failed to delete user:", error);
+    } catch {
+      // Failed to delete user
     }
   };
 
@@ -141,8 +140,8 @@ export default function RegisterUserContents() {
       });
       setEditingUser(null);
       fetchUsers();
-    } catch (error) {
-      console.error("Failed to update user:", error);
+    } catch {
+      // Failed to update user
     }
   };
 
@@ -165,9 +164,6 @@ export default function RegisterUserContents() {
             mb: 10,
           }}
         >
-          {/* <Typography variant="h5" gutterBottom sx={{ textAlign: "center" }}>
-            ユーザー管理
-          </Typography> */}
           <TextField
             inputRef={nameRef}
             label="Name"

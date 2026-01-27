@@ -102,8 +102,7 @@ export default function ContactForm() {
       } else {
         setModalContent("error");
       }
-    } catch (error) {
-      console.error("送信エラー:", error);
+    } catch {
       setModalContent("error");
     }
   }, []);

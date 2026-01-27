@@ -47,8 +47,7 @@ export default function PlayerDetailPage() {
         } else {
           setError("選手が見つかりません");
         }
-      } catch (err) {
-        console.error("Failed to fetch player:", err);
+      } catch {
         setError("データの取得に失敗しました");
       } finally {
         setLoading(false);

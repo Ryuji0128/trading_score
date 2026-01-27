@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
+const MAX_AMOUNT = 1000000; // 100万円上限
+
 function getStripe() {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error("STRIPE_SECRET_KEY is not set");
@@ -15,9 +17,9 @@ export async function POST(request: NextRequest) {
   try {
     const { amount } = await request.json();
 
-    if (!amount || amount < 100) {
+    if (!amount || typeof amount !== "number" || amount < 100 || amount > MAX_AMOUNT) {
       return NextResponse.json(
-        { error: "100円以上を指定してください" },
+        { error: `100円以上${MAX_AMOUNT.toLocaleString()}円以下を指定してください` },
         { status: 400 }
       );
     }
@@ -44,8 +46,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err) {
-    console.error(err);
+  } catch {
     return NextResponse.json(
       { error: "決済セッションの作成に失敗しました" },
       { status: 500 }

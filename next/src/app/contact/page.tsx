@@ -1,7 +1,21 @@
 import ContactMailIcon from "@mui/icons-material/ContactMail";
 import { Box, Chip, Container, Typography } from "@mui/material";
+import type { Metadata } from "next";
 import { ReCaptchaProvider } from "next-recaptcha-v3";
 import ContactForm from "./ContactForm";
+
+export const metadata: Metadata = {
+  title: "お問い合わせ",
+  description:
+    "MLB Noteへのお問い合わせページです。ご質問やご要望がございましたら、お気軽にお問い合わせください。",
+  openGraph: {
+    title: "お問い合わせ | MLB Note",
+    description:
+      "MLB Noteへのお問い合わせページです。ご質問やご要望がございましたら、お気軽にお問い合わせください。",
+    type: "website",
+  },
+};
+
 export default async function ContactPage() {
 
   return (

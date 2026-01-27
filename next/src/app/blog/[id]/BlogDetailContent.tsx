@@ -40,8 +40,8 @@ export default function BlogDetailContent({ id }: Props) {
         const data = await response.json();
         setBlog(data);
       }
-    } catch (error) {
-      console.error('Failed to fetch blog:', error);
+    } catch {
+      // Failed to fetch blog
     } finally {
       setLoading(false);
     }
@@ -55,8 +55,8 @@ export default function BlogDetailContent({ id }: Props) {
         const user = await response.json();
         setIsSuperuser(user.is_superuser || false);
       }
-    } catch (error) {
-      console.error('Failed to check user permission:', error);
+    } catch {
+      // Failed to check permission
     }
   };
 
@@ -82,8 +82,7 @@ export default function BlogDetailContent({ id }: Props) {
       } else {
         alert('削除に失敗しました');
       }
-    } catch (error) {
-      console.error('Failed to delete blog:', error);
+    } catch {
       alert('削除に失敗しました');
     }
   };

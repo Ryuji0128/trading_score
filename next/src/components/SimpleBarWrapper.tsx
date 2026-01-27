@@ -29,9 +29,10 @@ export const SimpleBarWrapper: React.FC<{ children: React.ReactNode }> = ({
 export const useSimpleBar = (): SimpleBarContextValue => {
   const context = useContext(SimpleBarContext);
   if (!context) {
-    throw new Error(
-      "useSimpleBar must be used within a SimpleBarWrapper"
-    );
+    // Return a dummy ref for build-time rendering
+    return {
+      scrollContainerRef: { current: null } as React.RefObject<HTMLDivElement | null>,
+    };
   }
   return context;
 };
