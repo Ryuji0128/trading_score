@@ -70,3 +70,6 @@ docker-compose.override.yml
 
 backups/*
 nginx/logs/*
+
+# media uploads
+django/media/

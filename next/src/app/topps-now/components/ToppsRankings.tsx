@@ -231,9 +231,9 @@ export default function ToppsRankings({
                 name={player.name}
                 subtitle={`${player.cardCount}種類 / 合計${player.totalPrint.toLocaleString()}枚`}
                 chipLabel={`${player.avgPrint.toLocaleString()}/枚`}
-                topColor="#1565c0"
-                normalBgColor="#e3f2fd"
-                normalTextColor="#1565c0"
+                topColor="#1a472a"
+                normalBgColor="#e8f5e9"
+                normalTextColor="#1a472a"
                 borderColor="#e8f5e9"
                 isLast={index === playerAvgPrintRanking.length - 1}
               />

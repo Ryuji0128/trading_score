@@ -18,8 +18,16 @@ export default function Footer() {
       sx={{
         position: "static",
         bottom: 0,
-        backgroundColor: "primary.main",
-        color: "primary.contrastText",
+        background: `
+          linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+          linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.03) 75%),
+          linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.03) 75%),
+          linear-gradient(180deg, #1a472a 0%, #0d2818 100%)
+        `,
+        backgroundSize: "20px 20px, 20px 20px, 20px 20px, 20px 20px, 100% 100%",
+        backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0, 0 0",
+        color: "#fff",
         padding: "1rem 0",
       }}
     >

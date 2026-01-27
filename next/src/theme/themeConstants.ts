@@ -44,17 +44,17 @@ declare module "@mui/material/styles" {
 export const themeConstants = {
   palette: {
     primary: {
-      pale: "#E3F2FD",
-      light: "#64B5F6",
-      main: "#1565C0",
-      dark: "#0D47A1",
+      pale: "#e8f5e9",
+      light: "#66bb6a",
+      main: "#1a472a",
+      dark: "#0d2818",
       contrastText: "#FFFFFF",
     },
     secondary: {
-      pale: "#E0F7FA",
-      light: "#4DD0E1",
-      main: "#00ACC1",
-      dark: "#006064",
+      pale: "#f1f8e9",
+      light: "#aed581",
+      main: "#2e7d32",
+      dark: "#1b5e20",
       contrastText: "#FFFFFF",
     },
     info: {

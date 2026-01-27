@@ -13,7 +13,6 @@ import MLBLayout from "@/components/MLBLayout";
 import PublicIcon from "@mui/icons-material/Public";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import SportsCricketIcon from "@mui/icons-material/SportsCricket";
 import type { WBCTournament, WBCGame, WBCTournamentDetail, WBCRosterEntry, PlayerCard } from "@/lib/types";
 import { fetcher } from "@/lib/fetcher";
 
@@ -110,41 +109,47 @@ export default function WBCContent() {
 
   return (
     <MLBLayout activePath="/wbc">
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        {/* Hero Section */}
-        <Paper
-          sx={{
-            p: 4,
-            mb: 4,
-            background: "linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #01579b 100%)",
-            color: "white",
-            borderRadius: 3,
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <Box sx={{ position: "relative", zIndex: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
-              <PublicIcon sx={{ fontSize: 40 }} />
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                World Baseball Classic
-              </Typography>
-            </Box>
-            <Typography variant="body1" sx={{ opacity: 0.9 }}>
-              WBC各大会のトーナメント結果と出場メンバー
-            </Typography>
-          </Box>
-          <SportsCricketIcon
+      {/* Hero Section */}
+      <Box
+        sx={{
+          background: "linear-gradient(135deg, #1a472a 0%, #2e7d32 100%)",
+          color: "white",
+          py: { xs: 6, md: 10 },
+          px: 3,
+          position: "relative",
+          overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0, right: 0, bottom: 0, left: 0,
+            background: "url('data:image/svg+xml,%3Csvg width=\"100\" height=\"100\" viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M50 0 L60 40 L100 40 L68 62 L80 100 L50 76 L20 100 L32 62 L0 40 L40 40 Z\" fill=\"%23ffffff\" fill-opacity=\"0.03\"/%3E%3C/svg%3E')",
+            backgroundSize: "80px 80px",
+          },
+        }}
+      >
+        <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+          <Chip
+            icon={<PublicIcon sx={{ color: "white !important" }} />}
+            label="WBC情報"
+            size="small"
             sx={{
-              position: "absolute",
-              right: -20,
-              bottom: -20,
-              fontSize: 200,
-              opacity: 0.08,
+              mb: 2,
+              bgcolor: "rgba(255,255,255,0.2)",
+              color: "white",
+              fontWeight: 600,
+              borderRadius: 2,
             }}
           />
-        </Paper>
+          <Typography variant="h2" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: "2rem", md: "3.5rem" } }}>
+            World Baseball Classic
+          </Typography>
+          <Typography variant="h6" sx={{ opacity: 0.9, fontWeight: 400, maxWidth: 600, lineHeight: 1.8 }}>
+            WBC各大会のトーナメント結果と出場メンバー
+          </Typography>
+        </Container>
+      </Box>
 
+      <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* Year Tabs */}
         <Paper sx={{ mb: 3, borderRadius: 2 }}>
           <Tabs
@@ -159,10 +164,10 @@ export default function WBCContent() {
                 minWidth: 100,
               },
               "& .Mui-selected": {
-                color: "#1a237e",
+                color: "#1a472a",
               },
               "& .MuiTabs-indicator": {
-                backgroundColor: "#1a237e",
+                backgroundColor: "#1a472a",
                 height: 3,
               },
             }}
@@ -204,7 +209,7 @@ export default function WBCContent() {
             onChange={(_, v) => setSubTab(v)}
             sx={{
               "& .MuiTab-root": { fontWeight: 600 },
-              "& .MuiTabs-indicator": { backgroundColor: "#0d47a1" },
+              "& .MuiTabs-indicator": { backgroundColor: "#0d2818" },
             }}
           >
             <Tab label="試合結果" />
@@ -222,8 +227,8 @@ export default function WBCContent() {
           <Box>
             {gamesByDate.map(([date, games]) => (
               <Paper key={date} sx={{ mb: 2, borderRadius: 2, overflow: "hidden" }}>
-                <Box sx={{ bgcolor: "#e3f2fd", px: 2, py: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#1a237e" }}>
+                <Box sx={{ bgcolor: "#e8f5e9", px: 2, py: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#1a472a" }}>
                     {new Date(date + 'T00:00:00').toLocaleDateString("ja-JP", {
                       year: "numeric",
                       month: "long",

@@ -10,6 +10,7 @@ import LoginIcon from "@mui/icons-material/Login";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
 import SportsIcon from "@mui/icons-material/Sports";
 import PublicIcon from "@mui/icons-material/Public";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 const menuItems = [
   { text: "ホーム", icon: <HomeIcon />, path: "/" },
@@ -17,8 +18,9 @@ const menuItems = [
   { text: "Topps Now", icon: <StyleIcon />, path: "/topps-now" },
   { text: "MLB順位表", icon: <TrendingUpIcon />, path: "/stats" },
   { text: "最近の試合結果", icon: <SportsIcon />, path: "/games" },
-  { text: "WBC", icon: <PublicIcon />, path: "/wbc" },
+  { text: "WBC情報", icon: <PublicIcon />, path: "/wbc" },
   { text: "チーム一覧", icon: <EmojiEventsIcon />, path: "/teams" },
+  { text: "管理者情報", icon: <AdminPanelSettingsIcon />, path: "/admin-info" },
 ];
 
 interface MLBSidebarProps {
@@ -27,7 +29,18 @@ interface MLBSidebarProps {
 
 export default function MLBSidebar({ activePath = "/" }: MLBSidebarProps) {
   return (
-    <Box sx={{ height: "100%", background: "linear-gradient(180deg, #1a472a 0%, #0d2818 100%)" }}>
+    <Box sx={{
+      height: "100%",
+      background: `
+        linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(255,255,255,0.03) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.03) 75%),
+        linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.03) 75%),
+        linear-gradient(180deg, #1a472a 0%, #0d2818 100%)
+      `,
+      backgroundSize: "20px 20px, 20px 20px, 20px 20px, 20px 20px, 100% 100%",
+      backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0, 0 0",
+    }}>
       <Box sx={{ p: 3, textAlign: "center", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
         <Avatar
           sx={{

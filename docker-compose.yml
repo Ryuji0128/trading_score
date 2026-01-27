@@ -74,6 +74,7 @@ services:
       - ./certbot/conf:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./nginx/logs:/var/log/nginx
+      - ./django/media:/app/media:ro
     command: >
       /bin/sh -c "
         if [ \"$$USE_HTTPS\" = 'true' ]; then
