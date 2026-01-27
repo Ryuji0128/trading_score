@@ -68,14 +68,21 @@ services:
       - "443:443"
     environment:
       - SERVER_NAME=${SERVER_NAME:-localhost}
+      - USE_HTTPS=${USE_HTTPS:-false}
     volumes:
-      - ./nginx/default.conf.template:/etc/nginx/conf.d/default.conf.template:ro
+      - ./nginx:/etc/nginx/templates:ro
       - ./certbot/conf:/etc/letsencrypt:ro
       - ./certbot/www:/var/www/certbot:ro
       - ./nginx/logs:/var/log/nginx
     command: >
-      /bin/sh -c "envsubst '$$SERVER_NAME' < /etc/nginx/conf.d/default.conf.template
-      > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+      /bin/sh -c "
+        if [ \"$$USE_HTTPS\" = 'true' ]; then
+          envsubst '$$SERVER_NAME' < /etc/nginx/templates/https.conf.template > /etc/nginx/conf.d/default.conf;
+        else
+          cp /etc/nginx/templates/http.conf /etc/nginx/conf.d/default.conf;
+        fi &&
+        nginx -g 'daemon off;'
+      "
     depends_on:
       - next
       - django
