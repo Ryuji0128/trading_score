@@ -5,6 +5,8 @@ export interface Blog {
   content: string;
   image_url: string | null;
   author_name: string | null;
+  author_display_name: string | null;
+  slug: string | null;
   author_email: string | null;
   published: boolean;
   view_count: number;

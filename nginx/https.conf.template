@@ -43,6 +43,12 @@ server {
         proxy_read_timeout 60s;
     }
 
+    location /media/ {
+        alias /app/media/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
     location / {
         limit_req zone=general burst=20 nodelay;
         proxy_pass http://next_app:3000;

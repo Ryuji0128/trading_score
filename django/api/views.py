@@ -1,8 +1,12 @@
 import logging
+import uuid
+import os
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, action, throttle_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from django.conf import settings
 from .throttling import LoginRateThrottle, ToppsCardListThrottle, BurstThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model, authenticate
@@ -182,9 +186,25 @@ class ContactViewSet(viewsets.ModelViewSet):
 class BlogViewSet(viewsets.ModelViewSet):
     """
     Blog CRUD operations - Only superusers can create/update/delete
+    IDまたはslugでアクセス可能
     """
     queryset = Blog.objects.all()
     serializer_class = BlogSerializer
+
+    def get_object(self):
+        """IDまたはslugでブログを取得"""
+        pk = self.kwargs.get('pk')
+        if pk and not pk.isdigit():
+            self.kwargs['pk'] = None
+            self.kwargs['slug'] = pk
+            try:
+                obj = Blog.objects.get(slug=pk)
+                self.check_object_permissions(self.request, obj)
+                return obj
+            except Blog.DoesNotExist:
+                from django.http import Http404
+                raise Http404
+        return super().get_object()
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'increment_view']:
@@ -234,6 +254,41 @@ class BlogViewSet(viewsets.ModelViewSet):
         Blog.objects.filter(pk=blog.pk).update(view_count=F('view_count') + 1)
         blog.refresh_from_db()
         return Response({'view_count': blog.view_count})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def upload_image(request):
+    """画像アップロード（superuserのみ）"""
+    if not request.user.is_superuser:
+        return Response({'error': '権限がありません'}, status=status.HTTP_403_FORBIDDEN)
+
+    file = request.FILES.get('file')
+    if not file:
+        return Response({'error': 'ファイルが選択されていません'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 画像ファイルのみ許可
+    allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if file.content_type not in allowed_types:
+        return Response({'error': 'JPEG, PNG, GIF, WebPのみアップロード可能です'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 5MB制限
+    if file.size > 5 * 1024 * 1024:
+        return Response({'error': 'ファイルサイズは5MB以下にしてください'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # ユニークなファイル名で保存
+    ext = os.path.splitext(file.name)[1].lower()
+    filename = f"{uuid.uuid4().hex}{ext}"
+    upload_dir = os.path.join(settings.MEDIA_ROOT, 'blog')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    filepath = os.path.join(upload_dir, filename)
+    with open(filepath, 'wb+') as dest:
+        for chunk in file.chunks():
+            dest.write(chunk)
+
+    url = f"{settings.MEDIA_URL}blog/{filename}"
+    return Response({'url': url}, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])
@@ -392,6 +447,7 @@ class WBCTournamentViewSet(viewsets.ReadOnlyModelViewSet):
     """
     queryset = WBCTournament.objects.all()
     permission_classes = [AllowAny]
+    throttle_classes = []
     pagination_class = None
 
     def get_serializer_class(self):

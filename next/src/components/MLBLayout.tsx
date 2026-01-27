@@ -82,34 +82,43 @@ export default function MLBLayout({ children, activePath }: MLBLayoutProps) {
 
       {/* メインコンテンツ */}
       <Box component="main" sx={{ flexGrow: 1, width: { md: `calc(100% - ${DRAWER_WIDTH}px)` } }}>
-        {/* ヘッダー */}
-        <Box sx={{
-          p: 2,
-          borderBottom: "1px solid #e0e0e0",
-          bgcolor: "white",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}>
-          {isMobile && (
-            <IconButton onClick={handleDrawerToggle}>
-              <MenuIcon />
-            </IconButton>
-          )}
-          {!isMobile && <Box />}
+        {/* ヘッダー: モバイル時またはログイン時のみ表示 */}
+        {(isMobile || (mounted && isLoggedIn)) && (
+          <Box sx={{
+            p: 1.5,
+            borderBottom: "1px solid rgba(13,40,24,0.15)",
+            background: `
+              linear-gradient(45deg, rgba(26,71,42,0.04) 25%, transparent 25%),
+              linear-gradient(-45deg, rgba(26,71,42,0.04) 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, rgba(26,71,42,0.04) 75%),
+              linear-gradient(-45deg, transparent 75%, rgba(26,71,42,0.04) 75%),
+              white
+            `,
+            backgroundSize: "20px 20px, 20px 20px, 20px 20px, 20px 20px, 100% 100%",
+            backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0, 0 0",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center"
+          }}>
+            {isMobile ? (
+              <IconButton onClick={handleDrawerToggle}>
+                <MenuIcon />
+              </IconButton>
+            ) : <Box />}
 
-          {mounted && isLoggedIn && (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<LogoutIcon />}
-              onClick={handleLogout}
-              size="small"
-            >
-              ログアウト
-            </Button>
-          )}
-        </Box>
+            {mounted && isLoggedIn && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<LogoutIcon />}
+                onClick={handleLogout}
+                size="small"
+              >
+                ログアウト
+              </Button>
+            )}
+          </Box>
+        )}
         {children}
       </Box>
     </Box>

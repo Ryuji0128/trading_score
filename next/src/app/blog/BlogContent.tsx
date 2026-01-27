@@ -45,6 +45,13 @@ export default function BlogContent() {
           px: 3,
           position: "relative",
           overflow: "hidden",
+          "&::before": {
+            content: '""',
+            position: "absolute",
+            top: 0, right: 0, bottom: 0, left: 0,
+            background: "url('data:image/svg+xml,%3Csvg width=\"100\" height=\"100\" viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M50 0 L60 40 L100 40 L68 62 L80 100 L50 76 L20 100 L32 62 L0 40 L40 40 Z\" fill=\"%23ffffff\" fill-opacity=\"0.03\"/%3E%3C/svg%3E')",
+            backgroundSize: "80px 80px",
+          },
         }}
       >
         <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
@@ -114,7 +121,7 @@ export default function BlogContent() {
                       boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
                     },
                   }}
-                  onClick={() => router.push(`/blog/${blog.id}`)}
+                  onClick={() => router.push(`/blog/${blog.slug || blog.id}`)}
                 >
                   {blog.image_url && (
                     <CardMedia

@@ -5,7 +5,7 @@ from .views import (
     UserViewSet, AccountViewSet, SessionViewSet, VerificationTokenViewSet,
     NewsViewSet, InquiryViewSet, BlogViewSet, ContactViewSet, ToppsCardViewSet,
     PlayerViewSet, TeamViewSet, WBCTournamentViewSet,
-    login_view, register_view, current_user_view, get_game_id
+    login_view, register_view, current_user_view, get_game_id, upload_image
 )
 
 router = DefaultRouter()
@@ -28,6 +28,9 @@ urlpatterns = [
     path('auth/register/', register_view, name='register'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', current_user_view, name='current_user'),
+
+    # Upload
+    path('upload/image/', upload_image, name='upload_image'),
 
     # MLB API endpoints
     path('mlb/game/', get_game_id, name='get_game_id'),

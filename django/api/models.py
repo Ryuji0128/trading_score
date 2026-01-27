@@ -186,6 +186,8 @@ class Blog(models.Model):
         blank=True,
         related_name='blogs'
     )
+    author_display_name = models.CharField(max_length=100, null=True, blank=True, help_text='表示用の投稿者名（未設定時はユーザー名）')
+    slug = models.SlugField(max_length=200, null=True, blank=True, unique=True, help_text='カスタムURL（未設定時はIDを使用）')
     published = models.BooleanField(default=True)
     view_count = models.PositiveIntegerField(default=0)
 

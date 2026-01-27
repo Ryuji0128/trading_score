@@ -104,13 +104,21 @@ class ContactSerializer(serializers.ModelSerializer):
 
 
 class BlogSerializer(serializers.ModelSerializer):
-    author_name = serializers.CharField(source='author.name', read_only=True)
+    author_name = serializers.SerializerMethodField()
     author_email = serializers.EmailField(source='author.email', read_only=True)
 
     class Meta:
         model = Blog
-        fields = ['id', 'title', 'content', 'image_url', 'author', 'author_name', 'author_email', 'published', 'view_count', 'created_at', 'updated_at']
+        fields = ['id', 'title', 'content', 'image_url', 'author', 'author_name', 'author_display_name', 'slug', 'author_email', 'published', 'view_count', 'created_at', 'updated_at']
         read_only_fields = ['id', 'created_at', 'updated_at', 'author_name', 'author_email', 'view_count']
+
+    def get_author_name(self, obj):
+        """author_display_name があればそちらを優先"""
+        if obj.author_display_name:
+            return obj.author_display_name
+        if obj.author and hasattr(obj.author, 'name'):
+            return obj.author.name
+        return None
 
 
 # JWT Token Serializers
