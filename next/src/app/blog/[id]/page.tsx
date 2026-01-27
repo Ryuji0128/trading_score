@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import BlogDetailContent from "./BlogDetailContent";
 
 const INTERNAL_API_URL = process.env.INTERNAL_API_URL || "http://django_app:8000/api";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://baseball-now.com";
 
 interface BlogData {
   id: number;
@@ -37,7 +38,7 @@ export async function generateMetadata({
   }
 
   const description = blog.content.slice(0, 120) + (blog.content.length > 120 ? "..." : "");
-  const pageUrl = `http://192.168.11.22/blog/${blog.id}`;
+  const pageUrl = `${SITE_URL}/blog/${blog.id}`;
 
   return {
     title: `${blog.title} | MLB Note`,

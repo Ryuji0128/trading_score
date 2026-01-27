@@ -277,26 +277,26 @@ export function getColumns(editMode: boolean, teams: Team[]): GridColDef[] {
         editable: true,
         filterable: false,
       },
+      {
+        field: 'created_at',
+        headerName: '作成日',
+        width: 120,
+        headerClassName: 'data-grid-header',
+        type: 'date',
+        valueGetter: (value: string | null) => {
+          if (!value) return null;
+          return new Date(value);
+        },
+        renderCell: (params: { row: ToppsCard }) => {
+          const createdAt = params.row.created_at;
+          if (!createdAt) return '-';
+          const date = new Date(createdAt);
+          return date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        },
+        filterable: true,
+        sortable: true,
+      },
     ] as GridColDef[] : []),
-    {
-      field: 'created_at',
-      headerName: '作成日',
-      width: 120,
-      headerClassName: 'data-grid-header',
-      type: 'date',
-      valueGetter: (value: string | null) => {
-        if (!value) return null;
-        return new Date(value);
-      },
-      renderCell: (params: { row: ToppsCard }) => {
-        const createdAt = params.row.created_at;
-        if (!createdAt) return '-';
-        const date = new Date(createdAt);
-        return date.toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
-      },
-      filterable: true,
-      sortable: true,
-    },
     {
       field: 'nationality',
       headerName: '国籍',

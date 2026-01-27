@@ -19,7 +19,6 @@ const menuItems = [
   { text: "最近の試合結果", icon: <SportsIcon />, path: "/games" },
   { text: "WBC", icon: <PublicIcon />, path: "/wbc" },
   { text: "チーム一覧", icon: <EmojiEventsIcon />, path: "/teams" },
-  { text: "ログイン", icon: <LoginIcon />, path: "/login" },
 ];
 
 interface MLBSidebarProps {
@@ -80,8 +79,28 @@ export default function MLBSidebar({ activePath = "/" }: MLBSidebarProps) {
         ))}
       </List>
 
-      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, p: 3, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", display: "block", textAlign: "center" }}>
+      <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, p: 2, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
+        <ListItemButton
+          href="/login"
+          sx={{
+            borderRadius: 1,
+            color: "rgba(255,255,255,0.4)",
+            py: 0.5,
+            "&:hover": {
+              color: "rgba(255,255,255,0.6)",
+              background: "rgba(255,255,255,0.05)",
+            },
+          }}
+        >
+          <ListItemIcon sx={{ color: "inherit", minWidth: 30 }}>
+            <LoginIcon sx={{ fontSize: 16 }} />
+          </ListItemIcon>
+          <ListItemText
+            primary="管理者"
+            primaryTypographyProps={{ fontSize: "0.75rem" }}
+          />
+        </ListItemButton>
+        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", display: "block", textAlign: "center", mt: 1 }}>
           © 2025 MLB Note
         </Typography>
       </Box>
