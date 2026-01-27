@@ -4,7 +4,6 @@ import { Box, Drawer, IconButton, useMediaQuery, useTheme, Button } from "@mui/m
 import { useState, ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MenuIcon from "@mui/icons-material/Menu";
-import LoginIcon from "@mui/icons-material/Login";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MLBSidebar from "./MLBSidebar";
 
@@ -99,35 +98,16 @@ export default function MLBLayout({ children, activePath }: MLBLayoutProps) {
           )}
           {!isMobile && <Box />}
 
-          {mounted && (
-            <Box>
-              {isLoggedIn ? (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<LogoutIcon />}
-                  onClick={handleLogout}
-                  size="small"
-                >
-                  ログアウト
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  startIcon={<LoginIcon />}
-                  onClick={() => router.push('/login')}
-                  size="small"
-                  sx={{
-                    bgcolor: "#2e7d32",
-                    "&:hover": {
-                      bgcolor: "#1a472a",
-                    },
-                  }}
-                >
-                  ログイン
-                </Button>
-              )}
-            </Box>
+          {mounted && isLoggedIn && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              size="small"
+            >
+              ログアウト
+            </Button>
           )}
         </Box>
         {children}
