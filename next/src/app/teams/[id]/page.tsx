@@ -118,8 +118,8 @@ export default function TeamDetailPage() {
           });
         }
       }
-    } catch (error) {
-      console.error('Failed to fetch team data:', error);
+    } catch {
+      // Failed to fetch team data
     } finally {
       setLoading(false);
     }

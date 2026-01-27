@@ -1,4 +1,0 @@
-# app.prod.yaml: Google App Engine のデプロイ設定ファイル
-runtime: nodejs22
-env_variables:
-  ENVIRONMENT: prod

@@ -1,7 +1,20 @@
 import React from "react";
+import type { Metadata } from "next";
 import PrivacyPolicyDetails from "./PrivacyPolicyDetails";
 import { Box, Container, Typography, Chip } from "@mui/material";
 import PrivacyTipIcon from "@mui/icons-material/PrivacyTip";
+
+export const metadata: Metadata = {
+  title: "プライバシーポリシー",
+  description:
+    "MLB Noteのプライバシーポリシー・個人情報の取り扱いについて。",
+  openGraph: {
+    title: "プライバシーポリシー | MLB Note",
+    description:
+      "MLB Noteのプライバシーポリシー・個人情報の取り扱いについて。",
+    type: "website",
+  },
+};
 
 export default function PrivacyPolicy() {
   return (

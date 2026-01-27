@@ -3,22 +3,17 @@ FROM node:20-alpine
 RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
-ENV NODE_OPTIONS="--max-old-space-size=2048"
 
 # 依存関係のインストール
 COPY package.json yarn.lock ./
-RUN yarn install --network-timeout 600000 --frozen-lockfile
+RUN yarn install --frozen-lockfile --network-timeout 600000
 
-# アプリケーションコードのコピー
+# ソースコードのコピー
 COPY . .
 
-# ビルドキャッシュのクリーンアップ
-RUN rm -rf .next
-
-# Next.jsのビルド
+# 本番ビルド
+ENV NODE_ENV=production
 RUN yarn build
 
 EXPOSE 3000
-
-# 起動コマンド
 CMD ["yarn", "start", "-H", "0.0.0.0", "-p", "3000"]

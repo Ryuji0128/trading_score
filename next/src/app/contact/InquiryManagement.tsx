@@ -67,8 +67,8 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
     try {
       const response = await axios.get<{ inquiries: Inquiry[] }>("/api/email");
       setInquiries(response.data.inquiries);
-    } catch (error) {
-      console.error("問い合わせ一覧の取得に失敗:", error);
+    } catch {
+      // Failed to fetch inquiries
     } finally {
       setLoading(false);
     }
@@ -86,8 +86,8 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
             `/api/user?email=${encodeURIComponent(session?.user?.email ?? "")}`
           );
           setUser(response.data.users[0]);
-        } catch (error) {
-          console.error("ユーザー情報の取得に失敗:", error);
+        } catch {
+          // Failed to fetch user
         }
       };
       fetchUser();
@@ -104,8 +104,8 @@ const InquiryManagement: React.FC<InquiryManagementProps> = ({ session }) => {
       });
       setDeleteModalOpen(false);
       fetchInquiries();
-    } catch (error) {
-      console.error("問い合わせの削除に失敗:", error);
+    } catch {
+      // Failed to delete inquiry
     }
   };
 

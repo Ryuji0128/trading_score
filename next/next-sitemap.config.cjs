@@ -1,31 +1,36 @@
-// siteUrlに環境変数を使うべきだが、本ファイルがjs指定で読み込まれるため、envConfigは使用不可。
-
-const locs = [
-  "/",
-  "/contact",
-  "/news",
-];
-
+/** @type {import('next-sitemap').IConfig} */
 module.exports = {
-  siteUrl: "https://setaseisakusyo.com", // サイトのベースURL
-  generateRobotsTxt: true, // robots.txt を生成
-  sitemapSize: 5000, // 1つのサイトマップに含めるURL数
-  exclude: ["/portal-admin*", "/portal-login*"], // サイトマップから除外するパス、ニュース登録用portal-adminページと管理者用portal-loginページを作成すると想定
-  additionalPaths: async () => [ // サイトマップに含める追加のパス（動的ページとして認識され、自動捕捉されないため）
-    ...locs.map(loc => ({ loc, changefreq: "monthly", priority: 0.7, lastmod: new Date().toISOString() })),
-  ],
+  siteUrl: "https://baseball-now.com",
+  generateRobotsTxt: true,
+  sitemapSize: 5000,
+  exclude: ["/login", "/api/*"],
   transform: async (config, path) => ({
-    loc: `${config.siteUrl}${path}`, // ルート以外の全てのpathをサイトマップに含める
-    changefreq: "monthly", // ページの更新頻度、当面は変更がないと想定し、デフォルトのdailyからmonthlyに設定
-    priority: path === "/" ? 1.0 : 0.7, // デフォルトは全て0.7のため、トップページのみ1.0に設定
+    loc: path,
+    changefreq: getChangeFreq(path),
+    priority: getPriority(path),
     lastmod: new Date().toISOString(),
   }),
   robotsTxtOptions: {
     policies: [
       {
         userAgent: "*",
-        disallow: ["/portal-admin", "/portal-login"], // 除外するページ
+        allow: "/",
+        disallow: ["/login", "/api/"],
       },
     ],
+    additionalSitemaps: [],
   },
 };
+
+function getChangeFreq(path) {
+  if (path === "/" || path === "/topps-now" || path === "/games") return "daily";
+  if (path === "/stats" || path === "/blog") return "weekly";
+  return "monthly";
+}
+
+function getPriority(path) {
+  if (path === "/") return 1.0;
+  if (path === "/topps-now") return 0.9;
+  if (["/stats", "/games", "/teams", "/blog"].includes(path)) return 0.8;
+  return 0.7;
+}

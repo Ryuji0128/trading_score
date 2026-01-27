@@ -157,8 +157,8 @@ export function getColumns(editMode: boolean, teams: Team[]): GridColDef[] {
                   return;
                 }
               }
-            } catch (error) {
-              console.error('Failed to fetch game ID:', error);
+            } catch {
+              // Fallback to team schedule page
             }
           }
 
