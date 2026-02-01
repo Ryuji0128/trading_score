@@ -53,12 +53,11 @@ services:
     env_file:
       - ./django/.env
     depends_on:
-      mysql:
-        condition: service_healthy
+      - django
     restart: unless-stopped
     volumes:
       - ./django:/app
-    command: python manage.py run_scheduler --hour 7 --minute 0
+    command: bash -c "python manage.py migrate --noinput && python manage.py run_scheduler --hour 7 --minute 0"
 
   nginx:
     image: nginx:latest

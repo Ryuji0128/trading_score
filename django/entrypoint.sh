@@ -20,21 +20,6 @@ fi
 
 python manage.py migrate --noinput
 
-# スーパーユーザーの作成（オプション）
-echo "Creating superuser..."
-python manage.py shell << END
-from django.contrib.auth import get_user_model
-User = get_user_model()
-
-if not User.objects.filter(email='admin@admin.com').exists():
-    User.objects.create_superuser(
-        email='admin@admin.com',
-        password='admin1234',
-        username='admin',
-        name='Admin'
-    )
-END
-
 echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear || true
 
